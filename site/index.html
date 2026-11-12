@@ -39,6 +39,7 @@
     <a href="#fondateur">Fondateur</a>
     <a href="#mises-a-jour">Mises à jour</a>
     <a href="#conseils">Conseils</a>
+    <a href="#compte" id="lien-compte" class="lien-compte">Se connecter</a>
   </nav>
   <a class="btn btn-or btn-petit" href="#soutenir">Soutenir</a>
   <button class="burger" id="burger" aria-expanded="false" aria-controls="menu" aria-label="Ouvrir le menu"><i></i><i></i></button>
@@ -114,6 +115,16 @@
   </section>
 
   <!-- Conseils -->
+  <!-- Compte : le même que dans le jeu (js/compte.js) -->
+  <section class="page" id="compte" aria-labelledby="t-compte" hidden>
+    <div class="cadre etroit">
+      <p class="etiquette">Compte</p>
+      <h2 id="t-compte">Ton compte Rune Clash</h2>
+      <p class="doux chapo">Un seul compte pour le site et le jeu : ta progression est sauvegardée en ligne et te suit sur tous tes appareils. Créer un compte est gratuit et sans engagement.</p>
+      <div class="compte-zone" id="compte-zone"></div>
+    </div>
+  </section>
+
   <section class="page" id="conseils" aria-labelledby="t-conseils" hidden>
     <div class="cadre">
       <p class="etiquette">Conseils</p>
@@ -201,6 +212,7 @@
         <h3>Sans compte</h3>
         <p>Tu peux jouer sans compte. Ta progression et tes réglages restent alors <b>uniquement sur ton appareil</b> (stockage local du navigateur). Rien n'est envoyé au serveur.</p>
         <h3>Avec un compte</h3>
+        <p>Le compte se crée dans le jeu ou sur ce site (page Compte) : c'est le même. Sur le site, il sert seulement à te connecter et à choisir ton pseudo ; tu n'y apparais pas « en ligne » pour les autres joueurs.</p>
         <div class="tableau" role="region" aria-label="Données d'un compte" tabindex="0"><table>
           <thead><tr><th>Données</th><th>Pourquoi</th><th>Base légale</th><th>Durée</th></tr></thead>
           <tbody>
@@ -259,6 +271,7 @@
         <ul>
           <li>Tu peux jouer sans compte. Le compte sert à jouer en ligne et à retrouver ta progression.</li>
           <li>Pour créer un compte, il faut avoir 15 ans ou plus, ou l'accord d'un parent.</li>
+          <li>Le compte est le même sur le site et dans le jeu : on peut le créer et s'y connecter de l'un ou de l'autre.</li>
           <li>Un seul compte par personne. Garde ton mot de passe pour toi.</li>
           <li>Ton pseudo ne doit être ni insultant, ni choquant, ni le nom d'une autre personne. Un pseudo qui ne respecte pas ces règles peut être changé ou le compte suspendu.</li>
         </ul>
@@ -319,6 +332,8 @@
 <script defer src="js/config.js"></script>
 <script defer src="js/contenu.js"></script>
 <script defer src="js/scene-3d.js"></script>
+<script defer src="js/net-jeu.js"></script>
+<script defer src="js/compte.js"></script>
 <script defer src="js/conseils.js"></script>
 <script defer src="js/stats.js"></script>
 <script defer src="js/site.js"></script>

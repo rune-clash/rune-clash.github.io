@@ -40,6 +40,11 @@ const CONTENU = {
   /* ---------- Mises à jour (la plus récente en premier) ----------
      Pour en ajouter une : copie un bloc { ... }, colle-le tout en haut de la liste et change le texte. */
   majs: [
+    { v: '18.1', date: '12 novembre 2026', titre: 'Un seul compte pour le site et le jeu', points: [
+      'Nouvelle page Compte sur le site : se connecter ou créer un compte.',
+      'C’est le même compte que dans le jeu : connecté sur l’un, connecté sur l’autre (sur le même appareil).',
+      'Site plus propre sur téléphone : menu, accueil, page Soutenir, tableaux.'
+    ] },
     { v: '18.0', date: '12 novembre 2026', titre: 'Plus léger, plus propre', points: [
       'Le jeu se charge plus vite : 3D deux fois plus légère, code allégé, polices à part.',
       'Grand nettoyage du code : les restes des anciens coffres retirés, moins de rustines entre les versions.',

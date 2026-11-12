@@ -1,5 +1,5 @@
 // Rune Clash 3D : fonctionne hors ligne après la première ouverture
-const V = 'rune-clash-mwdsfqhw';
+const V = 'rune-clash-mwdxaomf';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png', './favicon.png'].concat(["./fonts/police-1.woff2","./fonts/police-2.woff2","./fonts/police-3.woff2","./fonts/police-4.woff2","./fonts/police-5.woff2"]);
 self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

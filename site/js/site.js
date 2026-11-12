@@ -72,7 +72,7 @@
   /* ---------- 3 bis. une page par rubrique ----------
      Chaque rubrique a son adresse (#jeu, #conseils…). Changer de rubrique change l'adresse,
      donc le bouton retour du téléphone ou du navigateur revient à la rubrique précédente. */
-  const PAGES = ['accueil', 'jeu', 'fondateur', 'mises-a-jour', 'conseils', 'soutenir', 'espace-fondateur', 'mentions-legales', 'confidentialite', 'conditions'];
+  const PAGES = ['accueil', 'jeu', 'fondateur', 'mises-a-jour', 'conseils', 'soutenir', 'compte', 'espace-fondateur', 'mentions-legales', 'confidentialite', 'conditions'];
   let pageActuelle = null;
   function pageDemandee() { const h = location.hash.slice(1); return PAGES.includes(h) ? h : 'accueil'; }
   function afficherPage(id) {
@@ -87,6 +87,7 @@
     if (!document.body.classList.contains('a-l-entree')) { $('#scene').classList.toggle('cache', id !== 'accueil'); Prisme3D.mode(id === 'accueil' ? 'accueil' : 'off'); }
     if (pageActuelle === 'espace-fondateur' && couperBoite) { couperBoite(); couperBoite = null; }
     if (id === 'espace-fondateur') afficherAdmin();
+    if (id === 'compte') Compte.ouvrir();
     pageActuelle = id;
     // le titre de la page reçoit le focus (lecteurs d'écran, clavier) sauf à l'arrivée
     if (entreeFaite) { const t = el.querySelector('h1, h2'); if (t) { t.tabIndex = -1; t.focus({ preventScroll: true }); } }
@@ -152,10 +153,7 @@
     z.innerHTML = '<p class="doux">Connexion…</p>';
     let u; try { u = await Conseils.moi(); } catch (e) { z.innerHTML = `<p class="doux">${esc(Conseils.raison(e))}</p>`; return; }
     if (!u) {
-      z.innerHTML = `<form class="formulaire" id="a-form"><label for="a-mail">Email de ton compte du jeu</label><input id="a-mail" type="email" autocomplete="email" required>
-        <label for="a-mdp">Mot de passe</label><input id="a-mdp" type="password" autocomplete="current-password" required>
-        <div class="form-bas"><span></span><button class="btn btn-or" type="submit">Se connecter</button></div><p class="etat" id="a-etat" role="status"></p></form>`;
-      $('#a-form').addEventListener('submit', async e => { e.preventDefault(); $('#a-etat').textContent = 'Connexion…'; try { await Conseils.connexion($('#a-mail').value.trim(), $('#a-mdp').value); afficherAdmin(); } catch (err) { $('#a-etat').textContent = Conseils.raison(err); $('#a-etat').classList.add('erreur'); } });
+      z.innerHTML = `<p>Connecte-toi d'abord avec ton compte (le même que dans le jeu).</p><div class="actions" style="margin-top:18px"><a class="btn btn-or" href="#compte">Se connecter</a></div>`;
       return;
     }
     if (!(await Conseils.estAdmin(u.uid))) {
@@ -207,6 +205,8 @@
   entree();
   // statistiques anonymes : comptage + réglage sur la page Confidentialité
   Stats.demarrer();
+  // déjà connecté (ici ou dans le jeu) : on rouvre la session pour afficher le pseudo en haut
+  try { if (localStorage.getItem('rc_compte') === '1') Compte.demarrer(); } catch (e) { /* */ }
   function etatStats() { const off = Stats.refuse(); $('#stats-etat').textContent = off ? 'désactivées' : 'activées'; $('#stats-bouton').textContent = off ? 'Les activer' : 'Les désactiver'; }
   etatStats();
   $('#stats-bouton').addEventListener('click', () => { Stats.activer(Stats.refuse()); etatStats(); });

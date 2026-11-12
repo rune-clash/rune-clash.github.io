@@ -2,8 +2,8 @@
    RUNE CLASH — BOÎTE À CONSEILS
    -----------------------------------------------------------------------------
    Les visiteurs envoient un conseil. Il arrive dans TA boîte (personne d'autre ne le voit).
-   Dans l'Espace fondateur (bas de page, ou adresse …#espace-fondateur), tu te connectes
-   avec ton compte du jeu, tu lis, tu réponds : le conseil et ta réponse s'affichent
+   Dans l'Espace fondateur (bas de page, ou adresse …#espace-fondateur), connecté avec ton compte
+   (page Compte du site : le même que dans le jeu), tu lis, tu réponds : le conseil et ta réponse s'affichent
    alors sur le site. Tu peux aussi supprimer un message sans le publier.
 
    Serveur : la Realtime Database Firebase du jeu.
@@ -28,8 +28,11 @@ const Conseils = (function () {
     if (charge) return charge;
     charge = (async () => {
       const c = cfg(); if (!c) throw new Error('config');
+      // Firebase est chargé par le code réseau du jeu (js/net-jeu.js) ; à défaut, ici
+      if (typeof Compte !== 'undefined') await Compte.demarrer();
       if (typeof firebase === 'undefined') { await script(SDK + 'firebase-app-compat.js'); await script(SDK + 'firebase-auth-compat.js'); await script(SDK + 'firebase-database-compat.js'); }
-      // une appli à part (« site ») : se connecter ici ne déconnecte pas le jeu
+      // les visiteurs SANS compte envoient leur conseil depuis une appli à part (« site », connexion anonyme) :
+      // ainsi le jeu ne voit jamais de compte anonyme
       app = firebase.apps.find(a => a.name === 'site') || firebase.initializeApp(c, 'site');
       return app;
     })();
@@ -37,6 +40,9 @@ const Conseils = (function () {
     return charge;
   }
   const db = () => app.database(), auth = () => app.auth(), MAINTENANT = () => firebase.database.ServerValue.TIMESTAMP;
+  // le compte du joueur (le même que dans le jeu) : appli Firebase par défaut, ouverte par js/net-jeu.js
+  const avecCompte = () => typeof NET !== 'undefined' && NET.mode === 'firebase' && NET.user;
+  const dbC = () => firebase.app().database();
   const raison = e => {
     const m = String(e && (e.code || e.message) || e);
     if (/config/.test(m)) return 'La boîte à conseils sera ouverte très bientôt.';
@@ -50,27 +56,28 @@ const Conseils = (function () {
   /* ---------- côté visiteur ---------- */
   async function envoyer(nom, txt) {
     await connecter();
-    const u = auth().currentUser && auth().currentUser.isAnonymous ? auth().currentUser : (await auth().signInAnonymously()).user;
-    const id = db().ref('conseils').push().key;
-    const maj = {}; maj['conseils/' + id] = { txt, nom: nom || '', uid: u.uid, t: MAINTENANT() }; maj['conseilsDernier/' + u.uid] = MAINTENANT();
-    await db().ref().update(maj);
+    // connecté avec son compte : le conseil part de ce compte ; sinon connexion anonyme (appli « site »)
+    const base = avecCompte() ? dbC() : db();
+    const u = avecCompte() ? NET.user : auth().currentUser && auth().currentUser.isAnonymous ? auth().currentUser : (await auth().signInAnonymously()).user;
+    const id = base.ref('conseils').push().key;
+    const maj = {}; maj['conseils/' + id] = { txt, nom: nom || (avecCompte() && NET.me && NET.me.pseudo) || '', uid: u.uid, t: MAINTENANT() }; maj['conseilsDernier/' + u.uid] = MAINTENANT();
+    await base.ref().update(maj);
   }
   async function publics(cb) {
     await connecter();
     db().ref('conseilsPublics').orderByChild('tr').limitToLast(40).on('value', s => { const v = s.val() || {}; cb(Object.keys(v).map(k => Object.assign({ id: k }, v[k])).sort((a, b) => (b.tr || 0) - (a.tr || 0))); });
   }
 
-  /* ---------- côté fondateur ---------- */
-  async function connexion(mail, mdp) { await connecter(); return (await auth().signInWithEmailAndPassword(mail, mdp)).user; }
-  async function deconnexion() { if (app) await auth().signOut(); }
-  async function moi() { await connecter(); return new Promise(ok => { const off = auth().onAuthStateChanged(u => { off(); ok(u && !u.isAnonymous ? u : null); }); }); }
-  async function estAdmin(uid) { try { return (await db().ref('admins/' + uid).get()).exists(); } catch (e) { return false; } }
-  function boite(cb) { const r = db().ref('conseils'); const h = s => { const v = s.val() || {}; cb(Object.keys(v).map(k => Object.assign({ id: k }, v[k])).sort((a, b) => b.t - a.t)); }; r.on('value', h); return () => r.off('value', h); }
-  function publier(c, rep) { const maj = {}; maj['conseilsPublics/' + c.id] = { q: c.txt || c.q, nom: c.nom || '', rep, t: c.t || Date.now(), tr: MAINTENANT() }; if (c.txt) maj['conseils/' + c.id] = null; return db().ref().update(maj); }
-  const supprimer = id => db().ref('conseils/' + id).remove();
-  const retirer = id => db().ref('conseilsPublics/' + id).remove();
+  /* ---------- côté fondateur : avec SON compte (le même que dans le jeu, connexion sur la page Compte) ---------- */
+  async function moi() { await connecter(); return avecCompte() ? { uid: NET.user.uid, email: NET.user.email } : null; }
+  async function deconnexion() { if (avecCompte()) await NET.signOut(); }
+  async function estAdmin(uid) { try { return (await dbC().ref('admins/' + uid).get()).exists(); } catch (e) { return false; } }
+  function boite(cb) { const r = dbC().ref('conseils'); const h = s => { const v = s.val() || {}; cb(Object.keys(v).map(k => Object.assign({ id: k }, v[k])).sort((a, b) => b.t - a.t)); }; r.on('value', h); return () => r.off('value', h); }
+  function publier(c, rep) { const maj = {}; maj['conseilsPublics/' + c.id] = { q: c.txt || c.q, nom: c.nom || '', rep, t: c.t || Date.now(), tr: MAINTENANT() }; if (c.txt) maj['conseils/' + c.id] = null; return dbC().ref().update(maj); }
+  const supprimer = id => dbC().ref('conseils/' + id).remove();
+  const retirer = id => dbC().ref('conseilsPublics/' + id).remove();
 
   // statistiques anonymes des n derniers jours (lisibles seulement par le fondateur)
-  async function stats(n) { await connecter(); const s = await db().ref('stats/j').orderByKey().limitToLast(n || 30).get(); return s.val() || {}; }
-  return { cfg, envoyer, publics, connexion, deconnexion, moi, estAdmin, boite, publier, supprimer, retirer, raison, stats };
+  async function stats(n) { await connecter(); const s = await dbC().ref('stats/j').orderByKey().limitToLast(n || 30).get(); return s.val() || {}; }
+  return { cfg, envoyer, publics, deconnexion, moi, estAdmin, boite, publier, supprimer, retirer, raison, stats };
 })();

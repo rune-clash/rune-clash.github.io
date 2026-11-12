@@ -90,7 +90,7 @@ body.a-l-entree .barre, body.a-l-entree .pages { opacity: 0; visibility: hidden;
 .menu a.ici::after { content: ''; position: absolute; left: 12px; right: 12px; bottom: 0; height: 1px; background: var(--or); }
 .burger { display: none; width: 44px; height: 40px; border: 0; background: none; cursor: pointer; padding: 14px 10px; flex-direction: column; justify-content: space-between; }
 .burger i { display: block; height: 1px; background: var(--or); transition: transform .2s; }
-@media (max-width: 900px) {
+@media (max-width: 1080px) {
   .burger { display: flex; }
   .barre .marque { font-size: 19px; letter-spacing: .1em; }
   .barre .btn-petit { margin-left: auto; }
@@ -315,7 +315,7 @@ h2 + .chapo { margin-top: 12px; }
 /* un mode ne se coupe jamais au milieu de son nom */
 .modes span { display: inline-block; white-space: nowrap; }
 
-@media (max-width: 900px) {
+@media (max-width: 1080px) {
   /* le menu couvre tout l'écran (avant, la page restait visible dessous) */
   /* (la barre a un flou d'arrière-plan : elle sert de cadre au menu, d'où une hauteur fixée plutôt que « bottom: 0 ») */
   .menu { height: calc(100vh - var(--haut)); height: calc(100dvh - var(--haut)); overflow-y: auto; background: #080706; border-bottom: 0; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
@@ -361,3 +361,18 @@ h2 + .chapo { margin-top: 12px; }
 
 /* une adresse e-mail s'écrit en minuscules */
 .reseaux a[href^="mailto:"] { text-transform: none; letter-spacing: .02em; }
+
+/* ---------- compte (v4.5) : le même que dans le jeu ---------- */
+.compte-zone { margin-top: clamp(16px, 3vh, 28px); max-width: 560px; }
+.onglets-compte { display: flex; gap: 0; margin-bottom: 16px; border-bottom: 1px solid var(--trait); }
+.onglets-compte button { flex: 1; padding: 12px 8px; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--doux); font: 400 13px/1 var(--f-texte); letter-spacing: .18em; text-transform: uppercase; cursor: pointer; }
+.onglets-compte button[aria-selected="true"] { color: var(--or); border-bottom-color: var(--or); }
+.formulaire .case { display: flex; gap: 10px; align-items: flex-start; margin-top: 10px; font-size: 14px; letter-spacing: 0; text-transform: none; color: var(--texte); line-height: 1.5; cursor: pointer; }
+.formulaire .case input { width: 18px; height: 18px; flex: none; margin: 2px 0 0; padding: 0; accent-color: var(--or); }
+.formulaire .case a { color: var(--or); }
+.carte-compte { padding: clamp(18px, 3vw, 28px); border: 1px solid var(--trait); background: var(--noir-2); }
+.carte-compte .etiquette { margin-bottom: 6px; }
+.pseudo-compte { margin: 0 0 4px; font-family: var(--f-titre); font-size: clamp(30px, 4vw, 40px); color: var(--or-clair); }
+.carte-compte .actions { margin-top: 18px; }
+.lien-compte { color: var(--or) !important; }
+@media (max-width: 420px) { .onglets-compte button { letter-spacing: .08em; font-size: 12.5px; } }
