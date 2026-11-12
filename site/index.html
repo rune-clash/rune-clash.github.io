@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rune Clash</title>
+<meta name="description" content="Rune Clash, jeu de combat 3D gratuit par Aykel Drira : duels en temps réel sur navigateur, téléphone et PC. Aucun achat en argent réel.">
+<meta name="theme-color" content="#080706">
+<meta property="og:title" content="Rune Clash">
+<meta property="og:description" content="Jeu de combat 3D gratuit : des duels en temps réel, tout se gagne en jouant.">
+<meta property="og:image" content="https://rune-clash.github.io/site/img/partage.jpg">
+<meta property="og:url" content="https://rune-clash.github.io/site/">
+<link rel="icon" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="preload" href="fonts/Jost.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+
+<!-- ===== Le Prisme en 3D : derrière l'écran d'entrée et la page Accueil ===== -->
+<div class="scene" id="scene" aria-hidden="true">
+  <svg class="scene-secours" viewBox="0 0 200 200" hidden><path d="M100 18 L164 112 L36 112 Z M100 18 L100 182 M36 112 L100 182 L164 112" fill="none" stroke="#d8b25a" stroke-width="2"/></svg>
+</div>
+
+<!-- ===== Écran d'entrée : le logo seul ===== -->
+<div class="entree" id="entree">
+  <button class="entree-logo" id="entrer" aria-label="Entrer sur le site de Rune Clash">
+    <span class="entree-titre">Rune Clash</span>
+    <span class="entree-aide" id="entree-aide">Touche pour entrer</span>
+  </button>
+</div>
+
+<!-- ===== Barre du haut (toujours visible) ===== -->
+<header class="barre" id="barre">
+  <a class="marque" href="#accueil">Rune Clash</a>
+  <nav class="menu" id="menu" aria-label="Rubriques">
+    <a href="#accueil">Accueil</a>
+    <a href="#jeu">Le jeu</a>
+    <a href="#fondateur">Fondateur</a>
+    <a href="#mises-a-jour">Mises à jour</a>
+    <a href="#conseils">Conseils</a>
+  </nav>
+  <a class="btn btn-or btn-petit" href="#soutenir">Soutenir</a>
+  <button class="burger" id="burger" aria-expanded="false" aria-controls="menu" aria-label="Ouvrir le menu"><i></i><i></i></button>
+</header>
+
+<!-- ===== Les pages : une seule visible à la fois ===== -->
+<main class="pages" id="pages">
+
+  <!-- Accueil -->
+  <section class="page page-accueil" id="accueil" aria-label="Accueil">
+    <div class="accueil-texte">
+      <p class="accroche" data-texte="accroche"></p>
+      <h1 class="titre">Rune Clash</h1>
+      <p class="intro" data-texte="intro"></p>
+      <div class="actions">
+        <a class="btn btn-or btn-grand" data-lien="jouer" href="#"><span data-texte-lien="jouer">Jouer maintenant</span></a>
+        <a class="btn btn-ligne btn-grand" data-lien="telecharger" href="#"><span data-texte-lien="telecharger">Installer l'appli</span></a>
+      </div>
+      <p class="supports" data-texte="supports"></p>
+    </div>
+    <div class="scene-outils" id="outils-3d">
+      <button class="rond" data-zoom="-1" aria-label="Rapprocher le Prisme"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></button>
+      <button class="rond" data-zoom="1" aria-label="Éloigner le Prisme"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></button>
+    </div>
+    <footer class="pied">
+      <ul class="reseaux" id="reseaux"></ul>
+      <p>Jeu gratuit, sans achat dans le jeu · © <span id="annee">2026</span> Aykel Drira · <a href="#mentions-legales">Mentions légales</a> · <a href="#confidentialite">Confidentialité</a> · <a href="#conditions">Conditions</a> · <a href="#espace-fondateur">Espace fondateur</a><span id="contact"></span></p>
+    </footer>
+  </section>
+
+  <!-- Le jeu -->
+  <section class="page" id="jeu" aria-labelledby="t-jeu" hidden>
+    <div class="cadre">
+      <p class="etiquette">Le jeu</p>
+      <h2 id="t-jeu">Dix ans après la chute du Prisme</h2>
+      <div class="deux">
+        <div class="col">
+          <div class="lore" id="lore"></div>
+          <h3>Les éléments</h3><p class="doux" data-texte="elements"></p>
+          <h3>Les modes</h3><p class="modes" id="modes"></p>
+        </div>
+        <div class="col">
+          <ol class="combat" id="combat"></ol>
+          <p class="progression" data-texte="progression"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Fondateur -->
+  <section class="page" id="fondateur" aria-labelledby="fondateur-nom" hidden>
+    <div class="cadre">
+      <p class="etiquette">Fondateur</p>
+      <h2 id="fondateur-nom"></h2>
+      <p class="signature" id="fondateur-role"></p>
+      <div class="deux">
+        <div class="col">
+          <blockquote class="citation" id="citation"></blockquote>
+          <div class="texte" id="fondateur-texte"></div>
+        </div>
+        <ol class="etapes col" id="etapes" aria-label="Les grandes étapes du projet"></ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- Mises à jour -->
+  <section class="page" id="mises-a-jour" aria-labelledby="t-majs" hidden>
+    <div class="cadre etroit colonne">
+      <p class="etiquette">Mises à jour</p>
+      <h2 id="t-majs">Journal des versions</h2>
+      <div class="journal defile" id="journal" tabindex="0" aria-label="Liste des versions"></div>
+    </div>
+  </section>
+
+  <!-- Conseils -->
+  <section class="page" id="conseils" aria-labelledby="t-conseils" hidden>
+    <div class="cadre">
+      <p class="etiquette">Conseils</p>
+      <h2 id="t-conseils">Dis-moi quoi ajouter</h2>
+      <div class="deux conseils">
+        <form class="formulaire" id="form-conseil" novalidate>
+          <p class="doux">Une idée de héros, de mode, un bug, une chose à changer ? Je lis chaque message et je publie les meilleurs avec ma réponse.</p>
+          <label for="c-nom">Ton pseudo <small>(facultatif, pas ton vrai nom)</small></label>
+          <input id="c-nom" name="nom" maxlength="20" autocomplete="nickname" placeholder="Anonyme">
+          <label for="c-txt">Ton conseil</label>
+          <textarea id="c-txt" name="txt" rows="4" maxlength="600" placeholder="Ce serait bien d'ajouter…" required></textarea>
+          <div class="form-bas">
+            <small id="c-compte">0 / 600</small>
+            <button class="btn btn-or" type="submit" id="c-envoyer">Envoyer</button>
+          </div>
+          <p class="etat" id="c-etat" role="status"></p>
+          <p class="mention">En envoyant, tu acceptes que ton conseil soit publié avec ton pseudo. N'écris rien de personnel. <a href="#confidentialite">Confidentialité</a> · <a href="#conditions">Conditions</a></p>
+        </form>
+        <div class="col colonne">
+          <h3>Mes réponses</h3>
+          <div class="reponses defile" id="reponses" tabindex="0" aria-label="Conseils publiés et réponses"><p class="doux">Chargement…</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Soutenir -->
+  <section class="page" id="soutenir" aria-labelledby="t-soutenir" hidden>
+    <div class="cadre">
+      <p class="etiquette">Soutenir</p>
+      <h2 id="t-soutenir">Soutiens un étudiant qui crée son jeu</h2>
+      <p class="doux chapo">Rune Clash est gratuit et le restera. Si le jeu te plaît, tu peux m'aider à continuer. Ton soutien ne donne <b class="or">aucun avantage en combat</b> : le jeu reste juste pour tout le monde.</p>
+      <div class="offres" id="offres"></div>
+      <div class="unique" id="unique"></div>
+      <div class="deux bas-soutien">
+        <div><h3>Me suivre</h3><ul class="reseaux-grille" id="reseaux-grille"></ul></div>
+        <div><h3>Le mur des soutiens</h3><p class="mur" id="mur"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Espace fondateur (adresse : …#espace-fondateur) -->
+  <section class="page admin" id="espace-fondateur" aria-labelledby="t-admin" hidden>
+    <div class="cadre etroit">
+      <p class="etiquette">Espace fondateur</p>
+      <h2 id="t-admin">Les conseils reçus</h2>
+      <div id="admin"></div>
+    </div>
+  </section>
+
+  <!-- ===== Informations légales =====
+       Les textes sont ici ; les champs entre <span data-legal="…"> sont remplis depuis js/config.js (rubrique legal). -->
+  <section class="page" id="mentions-legales" aria-labelledby="t-ml" hidden>
+    <div class="cadre etroit colonne">
+      <p class="etiquette">Informations légales</p>
+      <h2 id="t-ml">Mentions légales</h2>
+      <nav class="legal-nav" aria-label="Informations légales"><a href="#mentions-legales" aria-current="page">Mentions légales</a><a href="#confidentialite">Confidentialité</a><a href="#conditions">Conditions d'utilisation</a></nav>
+      <div class="legal defile" tabindex="0">
+        <h3>Éditeur</h3>
+        <p>Le site et le jeu Rune Clash sont édités par <b data-legal="editeur"></b>, particulier, à titre non professionnel.<br>Contact : <span data-legal="email"></span></p>
+        <h3>Directeur de la publication</h3>
+        <p><span data-legal="directeur"></span></p>
+        <h3>Hébergement</h3>
+        <p>Pages du site et du jeu : <b>GitHub, Inc.</b> (service GitHub Pages), 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, États-Unis. Téléphone : +1 877 448 4820. Site : github.com.</p>
+        <p>Comptes, sauvegardes en ligne et boîte à conseils : <b>Firebase</b>, service de Google (Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irlande).</p>
+        <h3>Propriété intellectuelle</h3>
+        <p>Le nom Rune Clash, le logo, l'univers, les personnages, les textes, les images et le code du site et du jeu appartiennent à l'éditeur. Toute reproduction ou réutilisation sans son accord écrit est interdite.</p>
+        <p>Éléments de tiers, utilisés selon leur licence : modèles 3D de base VRoid (licence CC0), bibliothèque 3D Three.js (licence MIT), polices Cormorant Garamond, Jost, Barlow et Inter (licence SIL Open Font License).</p>
+        <h3>Signaler un contenu</h3>
+        <p>Pour signaler un contenu illicite ou choquant (un pseudo, un conseil publié…), écris à l'adresse de contact ci-dessus en indiquant où il se trouve. Dans le jeu, tu peux aussi signaler un joueur depuis son profil.</p>
+        <p class="maj">Mise à jour : <span data-legal="miseAJour"></span></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="page" id="confidentialite" aria-labelledby="t-conf" hidden>
+    <div class="cadre etroit colonne">
+      <p class="etiquette">Informations légales</p>
+      <h2 id="t-conf">Confidentialité</h2>
+      <nav class="legal-nav" aria-label="Informations légales"><a href="#mentions-legales">Mentions légales</a><a href="#confidentialite" aria-current="page">Confidentialité</a><a href="#conditions">Conditions d'utilisation</a></nav>
+      <div class="legal defile" tabindex="0">
+        <p class="chapo-legal">En résumé : pas de publicité, pas de mesure d'audience, pas de revente, pas de cookie de suivi. On garde seulement ce qui sert à faire marcher le jeu, et tu peux tout effacer toi-même.</p>
+        <h3>Qui est responsable</h3>
+        <p>Le responsable des données est l'éditeur indiqué dans les <a href="#mentions-legales">mentions légales</a>. Contact : <span data-legal="email"></span></p>
+        <h3>Sans compte</h3>
+        <p>Tu peux jouer sans compte. Ta progression et tes réglages restent alors <b>uniquement sur ton appareil</b> (stockage local du navigateur). Rien n'est envoyé au serveur.</p>
+        <h3>Avec un compte</h3>
+        <div class="tableau" role="region" aria-label="Données d'un compte" tabindex="0"><table>
+          <thead><tr><th>Données</th><th>Pourquoi</th><th>Base légale</th><th>Durée</th></tr></thead>
+          <tbody>
+            <tr><td>Adresse e-mail et mot de passe</td><td>Te connecter. Le mot de passe est géré par Firebase : le jeu ne le voit jamais.</td><td>Contrat (conditions d'utilisation)</td><td>Tant que le compte existe</td></tr>
+            <tr><td>Pseudo, code ami, profil public (héros, niveau, rang, médailles)</td><td>Jouer en ligne, être trouvé par tes amis</td><td>Contrat</td><td>Tant que le compte existe</td></tr>
+            <tr><td>Progression sauvegardée</td><td>La retrouver sur un autre appareil</td><td>Contrat</td><td>Tant que le compte existe</td></tr>
+            <tr><td>Amis, demandes, invitations, club, présence en ligne</td><td>Les fonctions entre joueurs</td><td>Contrat</td><td>Tant que le compte existe (la présence s'efface à la déconnexion)</td></tr>
+            <tr><td>Classements, annonces du marché, phrases prédéfinies</td><td>Les classements et le marché entre joueurs</td><td>Contrat</td><td>Tant que le compte existe</td></tr>
+            <tr><td>Contrôles anti-triche (valeurs impossibles repérées dans une progression)</td><td>Garder un jeu juste pour tous</td><td>Intérêt légitime</td><td>Tant que le compte existe</td></tr>
+            <tr><td>Signalements de joueurs et rapports de bug (ton texte, la version du jeu, le type d'appareil et, si tu le laisses coché, une image du combat)</td><td>Modérer et corriger les bugs</td><td>Intérêt légitime</td><td>12 mois au plus</td></tr>
+          </tbody>
+        </table></div>
+        <p>Un compte inutilisé pendant 3 ans peut être supprimé.</p>
+        <h3>Sur ce site : la boîte à conseils</h3>
+        <p>Quand tu envoies un conseil, on enregistre ton texte, le pseudo que tu choisis (facultatif), la date et un identifiant technique anonyme qui sert à limiter les envois. Seul le fondateur peut lire les conseils. Il peut <b>publier</b> ton conseil sur le site avec ta réponse et ton pseudo : n'y écris ni ton vrai nom ni rien de personnel.</p>
+        <p>Base légale : ton consentement, donné en envoyant le conseil. Les conseils non publiés sont effacés au plus tard après 12 mois ; un conseil publié reste en ligne jusqu'à ce que tu demandes son retrait.</p>
+        <h3>Si tu soutiens le jeu</h3>
+        <p>Le paiement passe par Revolut ou PayPal. Il arrive sur le compte d'un proche de l'éditeur, qui gère les paiements pour lui. Ce compte reçoit seulement ce que la plateforme transmet au bénéficiaire : ton nom, le montant, la date et ton message (ton pseudo). Ça sert à t'accorder tes avantages et à tenir les comptes. Base légale : l'exécution de ta demande. Ces informations sont gardées le temps exigé pour les comptes (jusqu'à 10 ans). Tes données bancaires restent chez Revolut, PayPal ou Apple : personne d'autre ne les voit.</p>
+        <h3>Statistiques anonymes</h3>
+        <p>Pour savoir si le jeu plaît, le site et le jeu comptent chaque jour, <b>sans aucun identifiant</b> : les visites du site, les clics sur « Jouer » et sur un bouton de soutien, les appareils qui ouvrent le jeu, les nouveaux, ceux qui reviennent le lendemain ou 7 jours après, et les combats lancés. Le serveur reçoit seulement « +1 » sur un compteur du jour : impossible de savoir qui tu es ni de suivre ce que tu fais.</p>
+        <p>Pour ça, ton navigateur garde le jour de ta dernière visite et, pour le jeu, le jour de ton premier lancement (effacés au bout de 13 mois). Les totaux sont gardés 25 mois au plus. Base légale : l'intérêt légitime (mesure d'audience exemptée de consentement, selon les règles de la CNIL). Si ton navigateur envoie le signal « Global Privacy Control » ou « Do Not Track », rien n'est compté.</p>
+        <p class="stats-choix">Statistiques sur cet appareil : <b id="stats-etat">activées</b> <button class="btn btn-ligne btn-petit" type="button" id="stats-bouton">Les désactiver</button></p>
+        <h3>Cookies et stockage local</h3>
+        <p>Ni le site ni le jeu n'utilisent de cookie de publicité ou de mesure d'audience. Ils utilisent seulement le stockage local de ton navigateur : ta progression, tes réglages, ta connexion, le fait que tu as déjà passé l'écran d'accueil, et les deux dates des statistiques anonymes ci-dessus. Ce stockage ne demande pas ton accord, car il sert uniquement à faire marcher le service.</p>
+        <p>Les polices et la 3D sont hébergées sur le site lui-même : ta visite n'est pas transmise à Google Fonts ni à un autre service de ce genre.</p>
+        <h3>Qui reçoit les données</h3>
+        <p>Personne d'autre que l'éditeur, à part deux prestataires techniques qui agissent pour son compte : <b>Google</b> (Firebase : comptes, base de données) et <b>GitHub</b> (hébergement des pages ; il enregistre, comme tout hébergeur, des journaux techniques avec l'adresse IP). Ces sociétés peuvent stocker des données aux États-Unis ; ces transferts sont encadrés par les garanties prévues par le RGPD (cadre de protection des données UE–États-Unis et clauses contractuelles types de la Commission européenne).</p>
+        <p>Les autres joueurs voient seulement ton profil public, tes résultats dans les classements, tes annonces du marché et les phrases prédéfinies que tu publies. Il n'y a pas de discussion libre.</p>
+        <h3>Si tu as moins de 15 ans</h3>
+        <p>Demande à un parent de lire cette page avec toi. Tu ne peux créer un compte ou envoyer un conseil qu'avec son accord.</p>
+        <h3>Tes droits</h3>
+        <p>Tu peux demander à voir tes données, les corriger, les effacer, les récupérer, t'opposer à un usage ou le limiter.</p>
+        <ul>
+          <li><b>Effacer ton compte</b> : dans le jeu, Paramètres › Compte › Supprimer mon compte. Ton compte, ta sauvegarde, tes amis, ton pseudo, tes classements, tes annonces et tes rapports de bug sont alors effacés du serveur.</li>
+          <li><b>Changer ton pseudo</b> : Paramètres › Compte.</li>
+          <li><b>Tout le reste</b> (retirer un conseil publié, obtenir une copie de tes données…) : écris à <span data-legal="email"></span>. Réponse sous un mois au plus.</li>
+        </ul>
+        <p>Si tu penses que tes droits ne sont pas respectés, tu peux saisir la CNIL : cnil.fr, 3 place de Fontenoy, TSA 80715, 75334 Paris Cedex 07.</p>
+        <h3>Sécurité</h3>
+        <p>Les échanges passent en HTTPS. Des règles sur le serveur empêchent un joueur de lire ou de modifier les données d'un autre.</p>
+        <p class="maj">Mise à jour : <span data-legal="miseAJour"></span></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="page" id="conditions" aria-labelledby="t-cgu" hidden>
+    <div class="cadre etroit colonne">
+      <p class="etiquette">Informations légales</p>
+      <h2 id="t-cgu">Conditions d'utilisation</h2>
+      <nav class="legal-nav" aria-label="Informations légales"><a href="#mentions-legales">Mentions légales</a><a href="#confidentialite">Confidentialité</a><a href="#conditions" aria-current="page">Conditions d'utilisation</a></nav>
+      <div class="legal defile" tabindex="0">
+        <p class="chapo-legal">Les règles du jeu et du site, en clair. En créant un compte ou en envoyant un conseil, tu les acceptes.</p>
+        <h3>1. Le service</h3>
+        <p>Rune Clash est un jeu de combat gratuit, jouable dans le navigateur et installable comme une appli. Il n'y a aucun achat avec de l'argent réel dans le jeu. Le site présente le jeu et permet d'envoyer des conseils.</p>
+        <h3>2. Âge et compte</h3>
+        <ul>
+          <li>Tu peux jouer sans compte. Le compte sert à jouer en ligne et à retrouver ta progression.</li>
+          <li>Pour créer un compte, il faut avoir 15 ans ou plus, ou l'accord d'un parent.</li>
+          <li>Un seul compte par personne. Garde ton mot de passe pour toi.</li>
+          <li>Ton pseudo ne doit être ni insultant, ni choquant, ni le nom d'une autre personne. Un pseudo qui ne respecte pas ces règles peut être changé ou le compte suspendu.</li>
+        </ul>
+        <h3>3. Comportement</h3>
+        <p>Respecte les autres joueurs. Les seuls messages possibles dans le jeu sont des phrases prédéfinies : les utiliser pour harceler quelqu'un est interdit.</p>
+        <h3>4. Triche</h3>
+        <p>Est interdit tout ce qui donne un avantage que le jeu ne prévoit pas, notamment :</p>
+        <ul>
+          <li>modifier sa sauvegarde ou les données envoyées au serveur ;</li>
+          <li>utiliser un programme, un script ou une extension qui joue ou modifie le jeu ;</li>
+          <li>exploiter un bug au lieu de le signaler ;</li>
+          <li>utiliser plusieurs comptes pour gonfler un classement, le marché ou un club.</li>
+        </ul>
+        <p>Le jeu contrôle automatiquement les progressions et les scores. Une valeur impossible est corrigée. Selon la gravité : retrait du score, exclusion des classements et du marché, suspension ou suppression du compte. Tu peux contester une sanction en écrivant à <span data-legal="email"></span>.</p>
+        <h3>5. Objets du jeu</h3>
+        <p>Les héros, fragments, tickets, monnaies et autres objets du jeu n'ont aucune valeur en argent. Ils ne s'achètent pas, et il est interdit de les vendre ou de les échanger contre de l'argent réel, dans le jeu comme en dehors. Ils peuvent évoluer avec les mises à jour (équilibrage des combats, par exemple).</p>
+        <h3>6. Tes conseils</h3>
+        <p>En envoyant un conseil, tu acceptes qu'il soit publié sur le site avec ton pseudo et la réponse du fondateur, et qu'une idée soit reprise dans le jeu. N'y mets aucune information personnelle. Tu peux demander à tout moment le retrait d'un conseil publié. Les messages insultants ou hors sujet sont supprimés.</p>
+        <h3>7. Soutien</h3>
+        <ul>
+          <li>Soutenir est facultatif et ne donne <b>aucun avantage en combat</b>.</li>
+          <li>Chaque soutien est un <b>paiement unique</b> : il n'y a pas d'abonnement et rien n'est prélevé ensuite.</li>
+          <li>Le paiement se fait sur Revolut (Apple Pay, carte ou compte Revolut) ou sur PayPal. Les conditions de la plateforme choisie s'appliquent. En cas d'erreur de paiement, écris à <span data-legal="email"></span>.</li>
+          <li>Les avantages de chaque formule sont ceux décrits sur la page Soutenir. Pour les recevoir, indique ton pseudo du jeu dans le message du paiement. Pour la formule qui permet de proposer un ajout au jeu, le fondateur décide de ce qui entre dans le jeu : la proposition doit être faisable, juste pour tous les joueurs et respecter ces conditions.</li>
+        </ul>
+        <h3>8. Disponibilité</h3>
+        <p>Le jeu est fait par une seule personne. Il peut changer, être en maintenance ou s'arrêter ; dans ce dernier cas, les joueurs seront prévenus à l'avance quand c'est possible. Aucune disponibilité permanente n'est garantie.</p>
+        <h3>9. Responsabilité</h3>
+        <p>L'éditeur fait de son mieux pour que le jeu fonctionne et soit sûr, mais ne peut pas garantir l'absence de bugs. Tu es responsable de l'usage de ton compte.</p>
+        <h3>10. Données et propriété</h3>
+        <p>Tes données sont traitées comme expliqué dans la page <a href="#confidentialite">Confidentialité</a>. Le jeu et son univers appartiennent à l'éditeur (voir les <a href="#mentions-legales">mentions légales</a>).</p>
+        <h3>11. Changements et droit applicable</h3>
+        <p>Ces conditions peuvent évoluer ; la date de mise à jour est indiquée ci-dessous et les changements importants sont annoncés dans le jeu. Elles sont soumises au droit français. En cas de désaccord, on cherche d'abord une solution à l'amiable par e-mail.</p>
+        <p class="maj">Mise à jour : <span data-legal="miseAJour"></span></p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ===== Installer l'appli ===== -->
+<dialog class="installer" id="installer" aria-labelledby="inst-titre">
+  <h2 id="inst-titre">Installer Rune Clash</h2>
+  <p>Le jeu s'installe depuis le navigateur, comme une appli. Pas de magasin, pas de compte obligatoire.</p>
+  <ol>
+    <li><b>Android (Chrome)</b><span>Ouvre le jeu, touche le menu ⋮ puis « Installer l'application ».</span></li>
+    <li><b>iPhone et iPad (Safari)</b><span>Ouvre le jeu, touche Partager puis « Sur l'écran d'accueil ».</span></li>
+    <li><b>PC (Chrome ou Edge)</b><span>Ouvre le jeu, puis clique sur l'icône d'installation dans la barre d'adresse.</span></li>
+  </ol>
+  <div class="actions">
+    <a class="btn btn-or" data-lien="jouer" href="#">Ouvrir le jeu</a>
+    <button class="btn btn-ligne" id="inst-fermer">Fermer</button>
+  </div>
+</dialog>
+
+<!-- Configuration du serveur du jeu (si le site est dans le dossier « site » du dépôt du jeu) -->
+<script src="../config.js" onerror="window.__sansConfigJeu = 1"></script>
+<script defer src="js/vendor/three.min.js"></script>
+<script defer src="js/config.js"></script>
+<script defer src="js/contenu.js"></script>
+<script defer src="js/scene-3d.js"></script>
+<script defer src="js/conseils.js"></script>
+<script defer src="js/stats.js"></script>
+<script defer src="js/site.js"></script>
+</body>
+</html>
