@@ -94,7 +94,7 @@ const Prisme3D = (function () {
     // page Accueil : à droite sur grand écran, en haut sur téléphone
     const large = camera.aspect > 1.1, k = Math.min(1, dt * 3.5);
     const bx = mode === 'accueil' && large ? -Math.min(3.1, camera.aspect * 1.3) : 0;
-    const by = mode === 'entree' ? (large ? -0.75 : -1.0) : (large ? 0 : -2.4);
+    const by = mode === 'entree' ? (large ? -0.75 : -1.0) : (large ? 0 : -3.5);   // téléphone : plus haut, au-dessus du texte
     cam.x += (bx - cam.x) * k; cam.y += (by - cam.y) * k;
     camera.position.set(cam.x, 0.2 + cam.y, V.dist); camera.lookAt(cam.x, cam.y, 0);
     groupe.rotation.set(V.tangage, V.lacet, 0);
@@ -128,7 +128,7 @@ const Prisme3D = (function () {
   function choisirMode(m) {
     mode = m; if (!camera || m === 'off') return;
     const large = camera.aspect > 1.1;
-    V.cible = m === 'entree' ? (large ? 8.8 : 12) : (large ? 8.4 : 16);
+    V.cible = m === 'entree' ? (large ? 8.8 : 12) : (large ? 8.4 : 20);   // téléphone : plus petit, il laisse la place au texte
   }
   return { init, zoomer: f => zoomer(f), mode: choisirMode };
 })();

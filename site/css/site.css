@@ -152,7 +152,8 @@ body.a-l-entree .barre, body.a-l-entree .pages { opacity: 0; visibility: hidden;
 .combat b { font-family: var(--f-titre); font-weight: 600; font-size: 21px; color: var(--or); }
 .combat span { display: block; color: var(--doux); font-size: 15px; line-height: 1.5; }
 .modes { color: var(--doux); line-height: 1.9; }
-.modes span + span::before { content: '·'; margin: 0 9px; color: var(--or-fonce); }
+/* le point sépare les modes ; placé après le nom, il ne commence jamais une ligne */
+.modes span:not(:last-child)::after { content: '·'; margin: 0 9px; color: var(--or-fonce); }
 .progression { margin-top: 22px; padding: 16px 20px; border: 1px solid var(--trait); font-size: 15.5px; }
 
 /* fondateur */
@@ -305,3 +306,58 @@ dialog::backdrop { background: rgba(0, 0, 0, .8); }
 .stats-table th { text-align: left; font-weight: 500; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--doux); padding: 6px 8px 6px 0; border-bottom: 1px solid var(--or-fonce); }
 .stats-table td { padding: 7px 8px 7px 0; border-bottom: 1px solid var(--trait); color: var(--texte); }
 .stats-table td small { color: var(--doux); }
+
+/* =============================================================================
+   v4.4 — TÉLÉPHONE : corrections d'affichage
+   ============================================================================= */
+.formulaire label small { font-size: 12px; }
+h2 + .chapo { margin-top: 12px; }
+/* un mode ne se coupe jamais au milieu de son nom */
+.modes span { display: inline-block; white-space: nowrap; }
+
+@media (max-width: 900px) {
+  /* le menu couvre tout l'écran (avant, la page restait visible dessous) */
+  /* (la barre a un flou d'arrière-plan : elle sert de cadre au menu, d'où une hauteur fixée plutôt que « bottom: 0 ») */
+  .menu { height: calc(100vh - var(--haut)); height: calc(100dvh - var(--haut)); overflow-y: auto; background: #080706; border-bottom: 0; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  .burger { flex: none; }
+}
+
+@media (max-width: 760px) {
+  /* accueil : pas de boutons + / − (on zoome avec deux doigts) */
+  .scene-outils { display: none; }
+  /* le texte de l'accueil passe devant le Prisme sur un fond qui s'assombrit : les anneaux ne barrent plus le titre */
+  .accueil-texte { position: relative; isolation: isolate; }
+  .accueil-texte::before { content: ''; position: absolute; z-index: -1; left: calc(-1 * var(--gouttiere)); right: calc(-1 * var(--gouttiere)); top: -90px; bottom: -400px;
+    background: linear-gradient(180deg, rgba(8, 7, 6, 0), rgba(8, 7, 6, .82) 90px, rgba(8, 7, 6, .94) 160px); pointer-events: none; }
+  .pied { position: relative; z-index: 1; }
+  .pied .reseaux a { text-transform: none; letter-spacing: .02em; font-size: 13px; }
+  /* modes en étiquettes */
+  .modes { display: flex; flex-wrap: wrap; gap: 8px; line-height: 1.3; }
+  .modes span { padding: 6px 10px; border: 1px solid var(--trait); font-size: 14px; }
+  .modes span::after { content: none !important; }
+  /* soutenir : les deux moyens de paiement l'un sous l'autre, en entier */
+  .offre .payer { flex-direction: column; }
+  .offre .payer .btn { width: 100%; }
+}
+
+/* petits téléphones (Android 360 px…) : la barre du haut tient en entier, le bouton du menu reste visible */
+@media (max-width: 420px) {
+  .barre { gap: 10px; }
+  .barre .marque { font-size: 16px; letter-spacing: .08em; min-width: 0; overflow: hidden; }
+  .barre .btn-petit { min-height: 36px; padding: 0 12px; font-size: 11.5px; letter-spacing: .14em; }
+}
+
+/* tableau de la page Confidentialité : une carte par ligne sur téléphone */
+@media (max-width: 640px) {
+  .tableau { overflow: visible; }
+  .legal table, .legal tbody, .legal tr, .legal td { display: block; min-width: 0; width: auto; }
+  .legal thead { display: none; }
+  .legal tr { padding: 12px 0; border-bottom: 1px solid var(--trait); }
+  .legal td { border: 0; padding: 3px 0; }
+  .legal td::before { content: attr(data-label); display: block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--doux); }
+  .legal td:first-child { font-family: var(--f-titre); font-size: 18px; padding-bottom: 4px; }
+  .legal td:first-child::before { content: none; }
+}
+
+/* une adresse e-mail s'écrit en minuscules */
+.reseaux a[href^="mailto:"] { text-transform: none; letter-spacing: .02em; }

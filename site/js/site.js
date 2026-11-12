@@ -27,7 +27,8 @@
     $('#journal').innerHTML = CONTENU.majs.map((m, i) => `<details class="version"${i === 0 ? ' open' : ''}><summary><b>${esc(m.v)}</b><span>${esc(m.titre)}</span><small>${esc(m.date)}</small></summary><ul>${m.points.map(p => `<li>${esc(p)}</li>`).join('')}</ul></details>`).join('');
     // réseaux : bas de l'Accueil (seulement ceux qui ont un lien) et page Soutenir (tous, « Bientôt » si vide)
     const R = CONFIG.reseaux || [], lien = r => r.email ? 'mailto:' + r.email : r.url;
-    $('#reseaux').innerHTML = R.filter(lien).map(r => `<li><a href="${esc(lien(r))}" rel="noopener">${esc(r.nom)}</a></li>`).join('');
+    // l'e-mail s'affiche en entier (avant, seulement le mot « E-mail », qui semblait traîner seul)
+    $('#reseaux').innerHTML = R.filter(lien).map(r => `<li><a href="${esc(lien(r))}" rel="noopener">${esc(r.email || r.nom)}</a></li>`).join('');
     $('#reseaux-grille').innerHTML = R.map(r => lien(r)
       ? `<li><a href="${esc(lien(r))}" rel="noopener"><b>${esc(r.nom)}</b><small>${esc(r.email || r.detail || '')}</small></a></li>`
       : `<li><span class="case"><b>${esc(r.nom)}</b><small>Bientôt</small></span></li>`).join('');
@@ -201,6 +202,8 @@
 
   /* ---------- 8. démarrage ---------- */
   remplir(); barre(); prisme(); conseils();
+  // tableaux des pages légales : chaque case connaît le titre de sa colonne (affichage en cartes sur téléphone)
+  $$('.legal table').forEach(t => { const th = [...t.querySelectorAll('thead th')].map(x => x.textContent); t.querySelectorAll('tbody tr').forEach(tr => [...tr.children].forEach((td, i) => { td.dataset.label = th[i] || ''; })); });
   entree();
   // statistiques anonymes : comptage + réglage sur la page Confidentialité
   Stats.demarrer();
