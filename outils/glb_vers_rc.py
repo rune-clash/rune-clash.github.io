@@ -50,7 +50,7 @@ REPLI = {"haL": "elL", "haR": "elR", "elL": "shL", "elR": "shR", "ftL": "knL", "
 TYPE_N = {"SCALAR": 1, "VEC2": 2, "VEC3": 3, "VEC4": 4, "MAT4": 16}
 TYPE_FMT = {5120: np.int8, 5121: np.uint8, 5122: np.int16,
             5123: np.uint16, 5125: np.uint32, 5126: np.float32}
-HAUTEUR = 1.656
+HAUTEUR = 1.89  # meme stature que les heros proceduraux apres le +14 % de la v21
 
 
 # --------------------------------------------------------------------------- #
