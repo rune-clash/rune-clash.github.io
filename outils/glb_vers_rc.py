@@ -210,6 +210,39 @@ def materiau(gltf, tex, p, n):
 #  ecriture du format packe
 # --------------------------------------------------------------------------- #
 
+CIBLE_TRIS = 14000  # budget triangles par heros (modeles IA tres denses)
+
+
+def simplifier(pos, uv, idx, cible=CIBLE_TRIS):
+    """Reduit le maillage en gardant les UV (quadric edge collapse texture)."""
+    nf = len(idx) // 3
+    if nf <= cible * 1.15:
+        return pos, uv, idx
+    import pymeshlab
+    ms = pymeshlab.MeshSet()
+    ms.add_mesh(pymeshlab.Mesh(
+        vertex_matrix=np.ascontiguousarray(pos, dtype=np.float64),
+        face_matrix=np.ascontiguousarray(idx.reshape(-1, 3).astype(np.int32)),
+        v_tex_coords_matrix=np.ascontiguousarray(uv, dtype=np.float64)))
+    ms.compute_texcoord_transfer_vertex_to_wedge()
+    for essai in range(5):  # le filtre bloque sur les coutures UV : on insiste
+        avant = ms.current_mesh().face_number()
+        ms.meshing_decimation_quadric_edge_collapse_with_texture(
+            targetfacenum=int(cible), qualitythr=.3, extratcoordw=.2,
+            preserveboundary=False, boundaryweight=.4,
+            optimalplacement=True, planarquadric=True)
+        apres = ms.current_mesh().face_number()
+        if apres <= cible * 1.05 or apres >= avant * .97:
+            break
+    ms.compute_texcoord_transfer_wedge_to_vertex()
+    m = ms.current_mesh()
+    p2 = np.asarray(m.vertex_matrix(), dtype=np.float64)
+    u2 = np.asarray(m.vertex_tex_coord_matrix(), dtype=np.float64)
+    f2 = np.asarray(m.face_matrix()).reshape(-1).astype(np.uint32)
+    print("  simplification %d -> %d triangles" % (nf, len(f2) // 3))
+    return p2, u2, f2
+
+
 def normales(pos, idx):
     """Normales de sommet calculees depuis les triangles (ponderees par l'aire)."""
     tri = idx.reshape(-1, 3).astype(np.int64)
@@ -377,6 +410,10 @@ def convertir_brut(gltf, buf, src, nom, dossier, hauteur, echelle):
             nor = nor @ M[:3, :3].T
             uv = accesseur(gltf, buf, at["TEXCOORD_0"]).astype(np.float64) if "TEXCOORD_0" in at else np.zeros((len(pos), 2))
             idx = accesseur(gltf, buf, p["indices"]).reshape(-1).astype(np.uint32) if "indices" in p else np.arange(len(pos), dtype=np.uint32)
+            avant = len(pos)
+            pos, uv, idx = simplifier(pos, uv, idx)
+            if len(pos) != avant:
+                nor = np.zeros_like(pos)  # recalculees plus bas
             m = materiau(gltf, tex, p, len(mats))
             m["kind"] = "MESH"  # garde la texture telle quelle
             mats.append(m)
