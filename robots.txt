@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# dossiers techniques : rien à indexer
+Disallow: /models/
+Disallow: /outils/
+Disallow: /fonts/
+
+Sitemap: https://rune-clash.github.io/sitemap.xml

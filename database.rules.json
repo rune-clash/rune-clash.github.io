@@ -332,7 +332,7 @@
       "j": {
         "$d": {
           "$k": {
-            ".write": "newData.exists() && $d.matches(/^20[0-9]{6}$/) && $k.matches(/^(site|jouer|soutien|lance|nouveau|r1|r7|combats)$/)",
+            ".write": "auth != null && newData.exists() && $d.matches(/^20[0-9]{6}$/) && $k.matches(/^(site|jouer|soutien|lance|nouveau|r1|r7|combats)$/)",
             ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1"
           }
         }

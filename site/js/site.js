@@ -126,16 +126,21 @@
   /* ---------- 5. boîte à conseils ---------- */
   function conseils() {
     const f = $('#form-conseil'), txt = $('#c-txt'), nom = $('#c-nom'), etat = $('#c-etat'), btn = $('#c-envoyer');
-    const dire = (m, err) => { etat.textContent = m; etat.classList.toggle('erreur', !!err); };
+    let envoiEnCours = false;
+    const dire = (m, err) => {
+      etat.textContent = m; etat.classList.toggle('erreur', !!err);
+      txt.setAttribute('aria-invalid', err ? 'true' : 'false');
+    };
     txt.addEventListener('input', () => { $('#c-compte').textContent = `${txt.value.length} / 600`; });
     f.addEventListener('submit', async e => {
       e.preventDefault();
-      const t = txt.value.trim(), n = nom.value.trim().slice(0, 20);
-      if (t.length < 5) { dire('Écris au moins quelques mots.', true); txt.focus(); return; }
-      btn.disabled = true; dire('Envoi…');
+      if (envoiEnCours) return;
+      const t = txt.value.trim().slice(0, 600), n = nom.value.trim().slice(0, 20);
+      if (t.length < 5) { dire('Écris au moins quelques mots (5 caractères minimum).', true); txt.focus(); return; }
+      envoiEnCours = true; btn.disabled = true; dire('Envoi…');
       try { await Conseils.envoyer(n, t); txt.value = ''; $('#c-compte').textContent = '0 / 600'; dire("Merci ! Ton conseil est bien arrivé. S'il est retenu, il apparaîtra ici avec ma réponse."); }
-      catch (err) { dire(Conseils.raison(err), true); }
-      btn.disabled = false;
+      catch (err) { dire(Conseils.raison(err), true); txt.focus(); }
+      envoiEnCours = false; btn.disabled = false;
     });
     const zone = $('#reponses');
     if (!Conseils.cfg()) { zone.innerHTML = '<p class="doux">Les premières réponses arrivent bientôt.</p>'; return; }

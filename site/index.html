@@ -3,13 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Rune Clash</title>
+<title>Rune Clash — le jeu de combat 3D gratuit, par un joueur</title>
+<link rel="canonical" href="https://rune-clash.github.io/site/">
 <meta name="description" content="Rune Clash, jeu de combat 3D gratuit par Aykel Drira : duels en temps réel sur navigateur, téléphone et PC. Aucun achat en argent réel.">
 <meta name="theme-color" content="#080706">
 <meta property="og:title" content="Rune Clash">
 <meta property="og:description" content="Jeu de combat 3D gratuit : des duels en temps réel, tout se gagne en jouant.">
 <meta property="og:image" content="https://rune-clash.github.io/site/img/partage.jpg">
 <meta property="og:url" content="https://rune-clash.github.io/site/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Rune Clash">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Rune Clash">
+<meta name="twitter:description" content="Jeu de combat 3D gratuit : des duels en temps réel, tout se gagne en jouant.">
+<meta name="twitter:image" content="https://rune-clash.github.io/site/img/partage.jpg">
 <link rel="icon" href="img/favicon.png">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <link rel="preload" href="fonts/Jost.woff2" as="font" type="font/woff2" crossorigin>
@@ -56,7 +66,7 @@
       <p class="intro" data-texte="intro"></p>
       <div class="actions">
         <a class="btn btn-or btn-grand" data-lien="jouer" href="#"><span data-texte-lien="jouer">Jouer maintenant</span></a>
-        <a class="btn btn-ligne btn-grand" data-lien="telecharger" href="#"><span data-texte-lien="telecharger">Installer l'appli</span></a>
+        <a class="lien-second" data-lien="telecharger" href="#"><span data-texte-lien="telecharger">Installer l'appli</span></a>
       </div>
       <p class="supports" data-texte="supports"></p>
     </div>
@@ -339,3 +349,10 @@
 <script defer src="js/site.js"></script>
 </body>
 </html>
+/* un seul bouton plein dans le premier ecran : le secondaire devient un lien discret */
+.lien-second{display:inline-block;margin-top:14px;padding:10px 14px;min-height:24px;font-size:14px;font-weight:600;color:#c8bda6;text-decoration:underline;text-underline-offset:4px;opacity:.85}
+.lien-second:hover{color:#e8d8b4;opacity:1}
+.lien-second:focus-visible{outline:2px solid #d9b56c;outline-offset:3px;border-radius:8px}
+/* cibles tactiles : au moins 24 px de haut dans le pied de page */
+.pied a,.legal-liens a{display:inline-block;padding:6px 2px;min-height:24px}
+
