@@ -210,7 +210,7 @@ def materiau(gltf, tex, p, n):
 #  ecriture du format packe
 # --------------------------------------------------------------------------- #
 
-CIBLE_TRIS = 14000  # budget triangles par heros (modeles IA tres denses)
+CIBLE_TRIS = 24000  # budget triangles par heros (modeles IA tres denses)
 
 
 def simplifier(pos, uv, idx, cible=CIBLE_TRIS):
@@ -225,11 +225,18 @@ def simplifier(pos, uv, idx, cible=CIBLE_TRIS):
         face_matrix=np.ascontiguousarray(idx.reshape(-1, 3).astype(np.int32)),
         v_tex_coords_matrix=np.ascontiguousarray(uv, dtype=np.float64)))
     ms.compute_texcoord_transfer_vertex_to_wedge()
-    for essai in range(5):  # le filtre bloque sur les coutures UV : on insiste
+    # nettoyage : les pointes viennent surtout de faces degenerees et de doublons
+    for f in ("meshing_remove_duplicate_vertices", "meshing_remove_null_faces",
+              "meshing_remove_unreferenced_vertices"):
+        try:
+            getattr(ms, f)()
+        except Exception:
+            pass
+    for essai in range(6):  # le filtre bloque sur les coutures UV : on insiste
         avant = ms.current_mesh().face_number()
         ms.meshing_decimation_quadric_edge_collapse_with_texture(
-            targetfacenum=int(cible), qualitythr=.3, extratcoordw=.2,
-            preserveboundary=False, boundaryweight=.4,
+            targetfacenum=int(cible), qualitythr=.6, extratcoordw=1.0,
+            preserveboundary=True, boundaryweight=1.0,
             optimalplacement=True, planarquadric=True)
         apres = ms.current_mesh().face_number()
         if apres <= cible * 1.05 or apres >= avant * .97:
@@ -275,19 +282,30 @@ def packer(paquets, mats, repos, nom, dossier, hauteur=HAUTEUR, echelle=None):
     for (pos, nor, uv, oi, w, idx, mat) in paquets:
         n, ni = len(pos), len(idx)
         i32 = n > 65535
+        def _cale():
+            # chaque section doit commencer sur un multiple de 4 octets :
+            # sinon Uint16Array/Uint32Array refuse de lire (nombre impair de sommets)
+            while len(blob) % 4:
+                blob.append(0)
+        _cale()
         p = {"mat": mat, "n": n, "ni": ni, "i32": i32, "pos": len(blob)}
         blob += np.clip(np.round((pos - q_o) / q_s) - 32767, -32768, 32767).astype(np.int16).tobytes()
+        _cale()
         p["nor"] = len(blob)
         blob += np.clip(np.round(nor * 127), -127, 127).astype(np.int8).tobytes()
+        _cale()
         p["uv"] = len(blob)
         u0, v0 = uv.min(axis=0)
         us, vs = np.maximum((uv.max(axis=0) - uv.min(axis=0)) / 65535.0, 1e-9)
         blob += np.round((uv - [u0, v0]) / [us, vs]).astype(np.uint16).tobytes()
         p["uvr"] = [float(u0), float(v0), float(us), float(vs)]
+        _cale()
         p["j"] = len(blob)
         blob += np.ascontiguousarray(oi[:, :4].astype(np.uint8)).tobytes()
+        _cale()
         p["w"] = len(blob)
         blob += np.ascontiguousarray(w[:, :4].astype(np.uint8)).tobytes()
+        _cale()
         p["idx"] = len(blob)
         blob += (idx.astype(np.uint32) if i32 else idx.astype(np.uint16)).tobytes()
         while len(blob) % 4:
@@ -360,25 +378,26 @@ def convertir_rigue(gltf, buf, src, nom, dossier, hauteur, echelle):
             if we.max() > 1.5:
                 we = we / (65535.0 if we.max() > 255 else 255.0)
             idx = accesseur(gltf, buf, p["indices"]).reshape(-1).astype(np.uint32) if "indices" in p else np.arange(len(pos), dtype=np.uint32)
-            np_pos, np_nor = np.zeros_like(pos), np.zeros_like(nor)
-            for c in range(jo.shape[1]):
-                w = we[:, c:c + 1]
-                if not w.any():
-                    continue
-                for ji in np.unique(jo[:, c]):
-                    sel = jo[:, c] == ji
-                    if not sel.any() or int(ji) >= len(trans):
-                        continue
-                    M = trans[int(ji)][0]
-                    pts = np.hstack([pos[sel], np.ones((sel.sum(), 1))])
-                    np_pos[sel] += w[sel] * (pts @ M.T)[:, :3]
-                    nn = np.hstack([nor[sel], np.zeros((sel.sum(), 1))])
-                    np_nor[sel] += w[sel] * (nn @ M.T)[:, :3]
-            lg = np.linalg.norm(np_nor, axis=1, keepdims=True)
-            np_nor = np_nor / np.where(lg < 1e-9, 1, lg)
+            # on garde la pose de reference telle que l'outil de rigging l'a faite :
+            # retirer la rotation de chaque os (ce que faisait trans) arrache les
+            # membres d'un modele en pose A. Les articulations gardent leur position,
+            # le moteur tourne les os par-dessus.
+            np_pos, np_nor = pos, nor
             oi = np.vectorize(lambda j: trans[int(j)][1] if int(j) < len(trans) else 0)(jo).astype(np.uint8)
             poids = np.clip(np.round(we * 255), 0, 255).astype(np.uint8)
-            mats.append(materiau(gltf, tex, p, len(mats)))
+            # allegement : on simplifie, puis chaque nouveau sommet reprend les
+            # poids du sommet d'origine le plus proche (ils varient lentement)
+            avant = len(np_pos)
+            s_pos, s_uv, s_idx = simplifier(np_pos, uv, idx)
+            if len(s_pos) != avant:
+                from scipy.spatial import cKDTree
+                _, prox = cKDTree(np_pos).query(s_pos, k=1)
+                oi, poids = oi[prox], poids[prox]
+                np_pos, uv, idx = s_pos, s_uv, s_idx
+                np_nor = normales(np_pos, idx)
+            m = materiau(gltf, tex, p, len(mats))
+            m["kind"] = "MESH"  # garde la texture telle quelle
+            mats.append(m)
             paquets.append([np_pos, np_nor, uv, oi, poids, idx, len(mats) - 1])
     if not paquets:
         raise SystemExit("aucun maillage rigue trouve")

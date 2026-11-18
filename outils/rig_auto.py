@@ -110,16 +110,55 @@ def _dist_segment(p, a, b):
     return np.linalg.norm(p - proj, axis=1)
 
 
-def poids(pos, J, idx=None, lissages=3, k=4):
-    """Poids de peau : inverse de la distance aux segments d'os, puis lissage."""
+def _graphe(pos, idx):
+    """Graphe des aretes du maillage, longueurs euclidiennes."""
+    from scipy.sparse import coo_matrix
+    tri = idx.reshape(-1, 3)
+    a = np.concatenate([tri[:, 0], tri[:, 1], tri[:, 2]])
+    b = np.concatenate([tri[:, 1], tri[:, 2], tri[:, 0]])
+    lg = np.linalg.norm(pos[a] - pos[b], axis=1) + 1e-6
+    n = len(pos)
+    g = coo_matrix((np.concatenate([lg, lg]),
+                    (np.concatenate([a, b]), np.concatenate([b, a]))), shape=(n, n))
+    return g.tocsr()
+
+
+def poids(pos, J, idx=None, lissages=4, k=4, p=2.0):
+    """Poids de peau par distance GEODESIQUE (le long de la surface).
+
+    La distance a vol d'oiseau lie la main a la hanche quand le bras pend le
+    long du corps : c'est ce qui dechirait les epaules et les mains. En suivant
+    la surface, chaque sommet reste rattache a l'os de son propre membre.
+    """
     segs = []
     for o in OS:
-        p = PARENT[o]
-        a = J[p] if p else J[o] + np.array([0, -.05, 0])
+        par = PARENT[o]
+        a = J[par] if par else J[o] + np.array([0, -.05, 0])
         segs.append((np.asarray(a, float), np.asarray(J[o], float)))
-    D = np.stack([_dist_segment(pos, a, b) for a, b in segs], axis=1)
-    W = 1.0 / np.power(D + 1e-3, 3.2)
-    # ne garder que les k os les plus proches
+    D = np.stack([_dist_segment(pos, a, b) for a, b in segs], axis=1)   # (n, os)
+
+    geo = None
+    if idx is not None:
+        try:
+            from scipy.sparse.csgraph import dijkstra
+            g = _graphe(pos, idx)
+            taille = float(np.linalg.norm(pos.max(0) - pos.min(0)))
+            geo = np.empty_like(D)
+            for i in range(len(OS)):
+                rayon = max(taille * .02, np.percentile(D[:, i], .6))
+                graines = np.where(D[:, i] <= rayon)[0]
+                if len(graines) == 0:
+                    graines = np.array([int(np.argmin(D[:, i]))])
+                d = dijkstra(g, directed=False, indices=graines, min_only=True)
+                d[~np.isfinite(d)] = taille * 4          # morceaux detaches
+                geo[:, i] = d + D[:, i] * .25            # un peu de distance directe : lisse les transitions
+        except Exception as e:                            # pas de scipy : on retombe sur l'ancien calcul
+            print("  (poids : distance directe,", e, ")")
+            geo = None
+    if geo is None:
+        geo = D
+
+    W = 1.0 / np.power(geo + 1e-3, p)
     ordre = np.argsort(-W, axis=1)
     masque = np.zeros_like(W, dtype=bool)
     np.put_along_axis(masque, ordre[:, :k], True, axis=1)
@@ -136,7 +175,7 @@ def poids(pos, J, idx=None, lissages=3, k=4):
         for _ in range(lissages):
             acc = np.zeros_like(W)
             np.add.at(acc, a, W[b])
-            W = .5 * W + .5 * (acc / cnt)
+            W = .35 * W + .65 * (acc / cnt)
             W /= W.sum(axis=1, keepdims=True)
     return W
 
@@ -182,8 +221,41 @@ def repos_cible(J):
     return cible
 
 
+def _mat_vers_quat(R):
+    """Matrice de rotation -> quaternion (w, x, y, z)."""
+    t = R[0, 0] + R[1, 1] + R[2, 2]
+    if t > 0:
+        r = np.sqrt(1 + t) * 2
+        return np.array([.25 * r, (R[2, 1] - R[1, 2]) / r, (R[0, 2] - R[2, 0]) / r, (R[1, 0] - R[0, 1]) / r])
+    i = int(np.argmax([R[0, 0], R[1, 1], R[2, 2]]))
+    if i == 0:
+        r = np.sqrt(1 + R[0, 0] - R[1, 1] - R[2, 2]) * 2
+        return np.array([(R[2, 1] - R[1, 2]) / r, .25 * r, (R[0, 1] + R[1, 0]) / r, (R[0, 2] + R[2, 0]) / r])
+    if i == 1:
+        r = np.sqrt(1 + R[1, 1] - R[0, 0] - R[2, 2]) * 2
+        return np.array([(R[0, 2] - R[2, 0]) / r, (R[0, 1] + R[1, 0]) / r, .25 * r, (R[1, 2] + R[2, 1]) / r])
+    r = np.sqrt(1 + R[2, 2] - R[0, 0] - R[1, 1]) * 2
+    return np.array([(R[1, 0] - R[0, 1]) / r, (R[0, 2] + R[2, 0]) / r, (R[1, 2] + R[2, 1]) / r, .25 * r])
+
+
+def _quat_vers_mat(q):
+    """Quaternions (n,4) -> matrices de rotation (n,3,3)."""
+    q = q / np.linalg.norm(q, axis=1, keepdims=True)
+    w, x, y, z = q[:, 0], q[:, 1], q[:, 2], q[:, 3]
+    R = np.empty((len(q), 3, 3))
+    R[:, 0, 0] = 1 - 2 * (y * y + z * z); R[:, 0, 1] = 2 * (x * y - w * z); R[:, 0, 2] = 2 * (x * z + w * y)
+    R[:, 1, 0] = 2 * (x * y + w * z); R[:, 1, 1] = 1 - 2 * (x * x + z * z); R[:, 1, 2] = 2 * (y * z - w * x)
+    R[:, 2, 0] = 2 * (x * z - w * y); R[:, 2, 1] = 2 * (y * z + w * x); R[:, 2, 2] = 1 - 2 * (x * x + y * y)
+    return R
+
+
 def vers_repos(pos, J, W, nor=None):
-    """Replace le maillage dans la pose de repos du jeu (et tourne les normales)."""
+    """Replace le maillage dans la pose de repos du jeu.
+
+    On melange les ROTATIONS (quaternions), pas les positions transformees :
+    le melange de positions ecrase les epaules et les aisselles en pointes
+    des que l'angle depasse une trentaine de degres (effet « papier de bonbon »).
+    """
     cible = repos_cible(J)
     Q = {"hips": np.eye(3)}
     for o in OS:
@@ -193,25 +265,44 @@ def vers_repos(pos, J, W, nor=None):
         d = np.asarray(J[o], float) - np.asarray(J[p], float)
         e = cible[o] - cible[p]
         Q[o] = _rot_entre(Q[p] @ d, e) @ Q[p]
-    out = np.zeros_like(pos)
-    outn = np.zeros_like(nor) if nor is not None else None
-    for i, o in enumerate(OS):
-        w = W[:, i:i + 1]
-        if not w.any():
-            continue
-        out += w * ((pos - np.asarray(J[o], float)) @ Q[o].T + cible[o])
-        if outn is not None:
-            outn += w * (nor @ Q[o].T)
-    if outn is not None:
+
+    quats = np.stack([_mat_vers_quat(Q[o]) for o in OS])          # (os, 4)
+    refs = np.stack([np.asarray(J[o], float) for o in OS])        # (os, 3) pivot d'origine
+    dsts = np.stack([cible[o] for o in OS])                       # (os, 3) pivot d'arrivee
+
+    # meme hemisphere, sinon le melange passe par l'autre cote
+    signe = np.sign(quats @ quats[0])
+    signe[signe == 0] = 1
+    quats = quats * signe[:, None]
+
+    qv = W @ quats                      # quaternion melange par sommet
+    n = np.linalg.norm(qv, axis=1, keepdims=True)
+    qv = qv / np.where(n < 1e-9, 1, n)
+    R = _quat_vers_mat(qv)              # (n,3,3)
+    pivot = W @ refs
+    arrivee = W @ dsts
+    out = np.einsum('nij,nj->ni', R, pos - pivot) + arrivee
+    outn = None
+    if nor is not None:
+        outn = np.einsum('nij,nj->ni', R, nor)
         lg = np.linalg.norm(outn, axis=1, keepdims=True)
         outn = outn / np.where(lg < 1e-9, 1, lg)
     return (out, cible) if outn is None else (out, cible, outn)
 
 
-def riguer(pos, idx, nor=None):
-    """Chaine complete : squelette, poids, remise en pose de repos."""
+def riguer(pos, idx, nor=None, repos_jeu=True):
+    """Chaine complete : squelette, poids, et au besoin remise en pose de repos.
+
+    repos_jeu=False (defaut) : on garde la pose du modele telle quelle et on
+    ecrit son propre squelette. C'est la pose de reference du personnage, comme
+    dans n'importe quel moteur. Forcer la pose bras le long du corps deformait
+    les epaules et les aisselles, quel que soit le melange utilise.
+    """
     J = fit_squelette(pos)
     W = poids(pos, J, idx)
+    if not repos_jeu:
+        cible = {o: np.asarray(J[o], float) for o in OS}
+        return (pos, cible, W) if nor is None else (pos, cible, W, nor)
     if nor is None:
         npos, cible = vers_repos(pos, J, W)
         return npos, cible, W
