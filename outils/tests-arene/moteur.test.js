@@ -12,7 +12,8 @@ const DT = 1 / 30;
 /* une partie « labo » : tous humains et immobiles sauf ce qu'on commande */
 function labo(persos, graine) {
   const parts = Array.from({ length: 10 }, (_, i) => ({ nom: 'H' + i, perso: persos[i] || 'bram', humain: true }));
-  const S = M.creerSimulation({ graine: graine || 4242, participants: parts });
+  /* décor permanent pour ces tests de combat (la destructibilité est testée dans decor.test.js) */
+  const S = M.creerSimulation({ graine: graine || 4242, participants: parts, mode: 'entrainement' });
   S.zone.r = 999;
   return S;
 }

@@ -40,6 +40,12 @@ const CONTENU = {
   /* ---------- Mises à jour (la plus récente en premier) ----------
      Pour en ajouter une : copie un bloc { ... }, colle-le tout en haut de la liste et change le texte. */
   majs: [
+    { v: '23.2', date: '24 novembre 2026', titre: 'Des arènes tactiques', points: [
+      'Six ambiances d\'arène (braises, abysses, orage, racines, nuit, prisme) avec murets, remparts, ruines et piliers.',
+      'Des fourrés de cristal pour se cacher : invisible de loin, et la première attaque depuis un fourré fait plus mal.',
+      'Dans les Runes des Trophées, le décor se brise sous les coups puissants : les couverts disparaissent au fil de la partie.',
+      'Les murs qui cachent ton personnage deviennent transparents pour rester lisible, même à 10.'
+    ] },
     { v: '23.1', date: '24 novembre 2026', titre: 'Combat plus technique', points: [
       "3 charges d'attaque au maximum : marteler les boutons ne sert plus à rien, le rythme compte.",
       'Chaque personnage a sa liste de coups : combos à 3 étapes, attaque après une esquive, coup final.',

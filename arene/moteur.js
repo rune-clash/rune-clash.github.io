@@ -2,7 +2,8 @@
  * Rune Clash — Runes des Trophées : MOTEUR DE JEU
  * ===============================================
  * Simulation pure (aucun affichage, aucun réseau) : carte, déplacements, collisions, machine à états des combattants,
- * anti-spam à 3 charges, combos, esquive, Ki et projections spéciales, zone qui rétrécit, stèles et runes, brume,
+ * anti-spam à 3 charges, combos, esquive, Ki et projections spéciales, zone qui rétrécit, stèles et runes,
+ * décor tactique (murets, remparts, piliers, cachettes) destructible seulement dans Runes des Trophées,
  * bots, classement 1er → 10e.
  *
  * Utilisée telle quelle :
@@ -40,52 +41,65 @@ window.ARENE_MOTEUR = (function () {
   }
 
   /* ------------------------------------------------------------------ */
-  /* Carte : murs, rochers, brumes, stèles et points de départ           */
+  /* Carte : thème, murets et remparts (dont ruines en L), piliers,       */
+  /* cachettes, stèles et points de départ. Symétrique, donc équitable.   */
   /* ------------------------------------------------------------------ */
   function genererCarte(graine) {
-    const rnd = alea(graine), T = R.TAILLE, H = T / 2;
-    const murs = [], rochers = [], brumes = [], steles = [], depart = [];
+    const rnd = alea(graine), T = R.TAILLE, H = T / 2, DC = R.DECOR;
+    const murs = [], piliers = [], cachettes = [], steles = [], depart = [];
+    const theme = DC.THEMES[Math.floor(rnd() * DC.THEMES.length)];
+    let nid = 1;
     const a0 = rnd() * TAU;
     for (let i = 0; i < CFG.NB_JOUEURS; i++) {
       const a = a0 + i * TAU / CFG.NB_JOUEURS;
       depart.push({ x: Math.cos(a) * H * 0.8, y: Math.sin(a) * H * 0.8 });
     }
-    /* rotation d'un quart de tour : la carte est symétrique, donc équitable */
     const rot4 = (x, y) => [[x, y], [-y, x], [-x, -y], [y, -x]];
     const loinDesDeparts = (x, y, m) => depart.every(d => hyp(d.x - x, d.y - y) > m);
     const distRect = (m, x, y) => hyp(Math.max(Math.abs(x - m.x) - m.w / 2, 0), Math.max(Math.abs(y - m.y) - m.h / 2, 0));
-    const libre = (x, y, m) => murs.every(w => distRect(w, x, y) > m) && rochers.every(r => hyp(r.x - x, r.y - y) > r.r + m);
+    const libre = (x, y, m) => murs.every(w => distRect(w, x, y) > m) && piliers.every(r => hyp(r.x - x, r.y - y) > r.r + m);
+    const mur = (x, y, w, h, type) => { const D = type === 'rempart' ? DC.REMPART : DC.MURET; return { id: nid++, k: 'mur', type, x, y, w, h, pv: D.PV, pvMax: D.PV, seuil: D.SEUIL }; };
+    const rectOk = (c, ignore) => {
+      const coins = [[c.x - c.w / 2, c.y - c.h / 2], [c.x + c.w / 2, c.y + c.h / 2], [c.x, c.y]];
+      return depart.every(d => distRect(c, d.x, d.y) > 2.6) && hyp(c.x, c.y) > 3 &&
+        murs.every(m => ignore && ignore.indexOf(m) >= 0 || !(Math.abs(m.x - c.x) < (m.w + c.w) / 2 + 1.7 && Math.abs(m.y - c.y) < (m.h + c.h) / 2 + 1.7)) &&
+        coins.every(([x, y]) => Math.abs(x) < H - 1 && Math.abs(y) < H - 1);
+    };
 
     let essais = 0;
-    while (murs.length < 7 * 4 && essais++ < 400) {
+    while (murs.length < 7 * 4 && essais++ < 500) {
       const hor = rnd() < 0.5, L = 2.6 + rnd() * 4.2, E = 1.1;
+      const type = rnd() < 0.35 ? 'rempart' : 'muret';
       const w = hor ? L : E, h = hor ? E : L;
       const cx = 2.2 + rnd() * (H - 4.5), cy = 2.2 + rnd() * (H - 4.5);
-      const copies = rot4(cx, cy).map(([x, y], k) => ({ x, y, w: k % 2 ? h : w, h: k % 2 ? w : h }));
-      const ok = copies.every(c => {
-        const coins = [[c.x - c.w / 2, c.y - c.h / 2], [c.x + c.w / 2, c.y + c.h / 2], [c.x, c.y]];
-        return depart.every(d => distRect(c, d.x, d.y) > 2.6) && hyp(c.x, c.y) > 3 &&
-          murs.every(m => !(Math.abs(m.x - c.x) < (m.w + c.w) / 2 + 1.7 && Math.abs(m.y - c.y) < (m.h + c.h) / 2 + 1.7)) &&
-          coins.every(([x, y]) => Math.abs(x) < H - 1 && Math.abs(y) < H - 1);
-      });
-      if (ok) copies.forEach(c => murs.push(c));
+      /* ruine en L : un retour perpendiculaire à une extrémité (30 %) */
+      const L2 = rnd() < 0.3 ? 1.8 + rnd() * 1.6 : 0, cote = rnd() < 0.5 ? -1 : 1, bout = rnd() < 0.5 ? -1 : 1;
+      const formes = [{ x: cx, y: cy, w, h }];
+      if (L2) formes.push(hor ? { x: cx + bout * (L / 2 - E / 2), y: cy + cote * (L2 / 2 + E / 2), w: E, h: L2 } : { x: cx + cote * (L2 / 2 + E / 2), y: cy + bout * (L / 2 - E / 2), w: L2, h: E });
+      const copies = [];
+      rot4(0, 0).forEach((_, k) => formes.forEach(fm => {
+        const [x, y] = rot4(fm.x, fm.y)[k];
+        copies.push({ x, y, w: k % 2 ? fm.h : fm.w, h: k % 2 ? fm.w : fm.h, k });
+      }));
+      const ok = copies.every(c => rectOk(c) && copies.every(o => o === c || o.k !== c.k || formes.length > 1 ||
+        !(Math.abs(o.x - c.x) < (o.w + c.w) / 2 + 1.7 && Math.abs(o.y - c.y) < (o.h + c.h) / 2 + 1.7)));
+      if (ok) copies.forEach(c => murs.push(mur(c.x, c.y, c.w, c.h, type)));
     }
     essais = 0;
-    while (rochers.length < 3 * 4 && essais++ < 300) {
+    while (piliers.length < 3 * 4 && essais++ < 300) {
       const r = 0.75 + rnd() * 0.55, cx = 2 + rnd() * (H - 4), cy = 2 + rnd() * (H - 4);
       const copies = rot4(cx, cy);
       if (copies.every(([x, y]) => loinDesDeparts(x, y, r + 2.4) && libre(x, y, r + 1.4) && hyp(x, y) > 2.5))
-        copies.forEach(([x, y]) => rochers.push({ x, y, r }));
+        copies.forEach(([x, y]) => piliers.push({ id: nid++, k: 'pilier', x, y, r, pv: DC.PILIER.PV, pvMax: DC.PILIER.PV, seuil: DC.PILIER.SEUIL }));
     }
     essais = 0;
-    const nbBrumes = Math.max(4, Math.round(R.BRUME.NOMBRE / 4) * 4);
-    while (brumes.length < nbBrumes && essais++ < 300) {
+    const nbCach = Math.max(4, Math.round(R.CACHETTES.NOMBRE / 4) * 4);
+    while (cachettes.length < nbCach && essais++ < 300) {
       const r = 1.9 + rnd() * 1.3, cx = 1 + rnd() * (H - 4), cy = 1 + rnd() * (H - 4);
       const copies = rot4(cx, cy);
-      if (copies.every(([x, y]) => brumes.every(b => hyp(b.x - x, b.y - y) > b.r + r + 1) && loinDesDeparts(x, y, 2)))
-        copies.forEach(([x, y]) => brumes.push({ x, y, r }));
+      if (copies.every(([x, y]) => cachettes.every(b => hyp(b.x - x, b.y - y) > b.r + r + 1) && loinDesDeparts(x, y, 2) && libre(x, y, r * 0.8)))
+        copies.forEach(([x, y]) => cachettes.push({ id: nid++, k: 'cachette', x, y, r, pv: DC.CACHETTE.PV, pvMax: DC.CACHETTE.PV, seuil: DC.CACHETTE.SEUIL }));
     }
-    /* une stèle devant chaque point de départ (même distance pour tout le monde), puis les autres au centre */
     depart.forEach(d => {
       for (let k = 0; k < 8; k++) {
         const f = 0.74 - k * 0.025, a = Math.atan2(d.y, d.x) + (k % 2 ? 1 : -1) * k * 0.03;
@@ -103,7 +117,21 @@ window.ARENE_MOTEUR = (function () {
         copies.forEach(([x, y]) => steles.push({ x, y }));
     }
     [[2.2, 0], [-2.2, 0]].forEach(([x, y]) => { if (steles.length < R.STELES.NOMBRE && libre(x, y, RAYON_STELE + 0.5)) steles.push({ x, y }); });
-    return { taille: T, demi: H, murs, rochers, brumes, steles, depart, graine };
+    const carte = { taille: T, demi: H, murs, piliers, cachettes, steles, depart, graine, theme, version: 0, detruits: [] };
+    carte.parId = {};
+    murs.concat(piliers, cachettes).forEach(o => { carte.parId[o.id] = o; });
+    return carte;
+  }
+
+  /* Un élément du décor disparaît : les collisions sont mises à jour immédiatement (listes filtrées). */
+  function retirerDecor(carte, o) {
+    if (!o || o.pv > 0 && !o.force) return;
+    o.pv = 0;
+    if (o.k === 'mur') carte.murs = carte.murs.filter(m => m !== o);
+    else if (o.k === 'pilier') carte.piliers = carte.piliers.filter(m => m !== o);
+    else if (o.k === 'cachette') carte.cachettes = carte.cachettes.filter(m => m !== o);
+    carte.detruits.push(o.id);
+    carte.version++;
   }
 
   /* ------------------------------------------------------------------ */
@@ -122,7 +150,7 @@ window.ARENE_MOTEUR = (function () {
           } else { p.x = qx + dx / d * r; p.y = qy + dy / d * r; }
         }
       }
-      for (const o of carte.rochers) {
+      for (const o of carte.piliers) {
         const dx = p.x - o.x, dy = p.y - o.y, d = hyp(dx, dy), m = o.r + r;
         if (d < m) { const k = d < 1e-6 ? 1 : d; p.x = o.x + (d < 1e-6 ? m : dx / k * m); p.y = o.y + (d < 1e-6 ? 0 : dy / k * m); }
       }
@@ -139,14 +167,18 @@ window.ARENE_MOTEUR = (function () {
     return p;
   }
 
-  function dansObstacle(carte, x, y, marge) {
+  /* Obstacle solide (muret, rempart ou pilier) sous le point, ou null. */
+  function obstacleEn(carte, x, y, marge) {
     marge = marge || 0;
-    for (const m of carte.murs) if (Math.abs(x - m.x) < m.w / 2 + marge && Math.abs(y - m.y) < m.h / 2 + marge) return true;
-    for (const o of carte.rochers) if (hyp(x - o.x, y - o.y) < o.r + marge) return true;
-    return false;
+    for (const m of carte.murs) if (Math.abs(x - m.x) < m.w / 2 + marge && Math.abs(y - m.y) < m.h / 2 + marge) return m;
+    for (const o of carte.piliers) if (hyp(x - o.x, y - o.y) < o.r + marge) return o;
+    return null;
   }
+  const dansObstacle = (carte, x, y, marge) => !!obstacleEn(carte, x, y, marge);
+  /* Distance du point au bord d'un élément (0 si dedans). */
+  const distDecor = (o, x, y) => o.k === 'mur' ? hyp(Math.max(Math.abs(x - o.x) - o.w / 2, 0), Math.max(Math.abs(y - o.y) - o.h / 2, 0)) : Math.max(0, hyp(x - o.x, y - o.y) - o.r);
 
-  /* Le segment (a → b) traverse-t-il un mur ou un rocher ? */
+  /* Le segment (a → b) traverse-t-il un muret, un rempart ou un pilier ? (ligne de vue, couverts) */
   function segmentBloque(carte, ax, ay, bx, by) {
     const dx = bx - ax, dy = by - ay;
     for (const m of carte.murs) {
@@ -160,22 +192,26 @@ window.ARENE_MOTEUR = (function () {
       };
       if (test(-dx, ax - x0) && test(dx, x1 - ax) && test(-dy, ay - y0) && test(dy, y1 - ay) && t0 <= t1) return true;
     }
-    for (const o of carte.rochers) {
+    for (const o of carte.piliers) {
       const L = dx * dx + dy * dy || 1, t = clamp(((o.x - ax) * dx + (o.y - ay) * dy) / L, 0, 1);
       if (hyp(ax + dx * t - o.x, ay + dy * t - o.y) < o.r * 0.9) return true;
     }
     return false;
   }
 
-  const dansBrume = (carte, x, y) => carte.brumes.some(b => hyp(b.x - x, b.y - y) < b.r);
+  /* Cachette qui contient le point, ou null. */
+  function dansCachette(carte, x, y) {
+    for (const b of carte.cachettes) if (hyp(b.x - x, b.y - y) < b.r) return b;
+    return null;
+  }
 
-  /* L'observateur voit-il la cible ? (brume et invisibilité) */
+  /* L'observateur voit-il la cible ? (cachettes et invisibilité) */
   function visible(obs, c) {
     if (!c.vivant) return false;
     if (obs && obs.slot === c.slot) return true;
     const d = obs ? hyp(obs.x - c.x, obs.y - c.y) : 99;
     if (c.invisible > 0) return d < 1.6;
-    if (c.brume && c.revele <= 0) return d < R.BRUME.VISIBILITE;
+    if (c.cache && c.revele <= 0) return d < R.CACHETTES.VISIBILITE;
     return true;
   }
 
@@ -186,10 +222,10 @@ window.ARENE_MOTEUR = (function () {
     return CFG.BOTS.NIVEAUX.find(n => trophees <= n.jusqua) || CFG.BOTS.NIVEAUX[CFG.BOTS.NIVEAUX.length - 1];
   }
 
-  /* Distance libre le long d'un rayon (x, y, angle) jusqu'au premier mur ou rocher (pour les faisceaux). */
-  function distanceLibre(carte, x, y, a, L) {
+  /* Premier obstacle solide le long d'un rayon (x, y, angle) : { d: distance libre, o: obstacle touché ou null }. */
+  function rayonObstacle(carte, x, y, a, L) {
     const dx = Math.cos(a), dy = Math.sin(a);
-    let best = L;
+    let best = L, touche = null;
     for (const m of carte.murs) {
       let t0 = 0, t1 = best;
       const x0 = m.x - m.w / 2, x1 = m.x + m.w / 2, y0 = m.y - m.h / 2, y1 = m.y + m.h / 2;
@@ -202,18 +238,20 @@ window.ARENE_MOTEUR = (function () {
         if (tb < t1) t1 = tb;
         if (t0 > t1) { ok = false; break; }
       }
-      if (ok && t0 < best && t0 >= 0) best = t0;
+      if (ok && t0 < best && t0 >= 0) { best = t0; touche = m; }
     }
-    for (const o of carte.rochers) {
+    for (const o of carte.piliers) {
       const fx = x - o.x, fy = y - o.y, b = fx * dx + fy * dy, c = fx * fx + fy * fy - o.r * o.r * 0.81, disc = b * b - c;
       if (disc < 0) continue;
       const t = -b - Math.sqrt(disc);
-      if (t >= 0 && t < best) best = t;
+      if (t >= 0 && t < best) { best = t; touche = o; }
     }
     const H = carte.demi;
     const tb = Math.min(dx > 0 ? (H - x) / dx : dx < 0 ? (-H - x) / dx : 1e9, dy > 0 ? (H - y) / dy : dy < 0 ? (-H - y) / dy : 1e9);
-    return Math.max(0, Math.min(best, tb));
+    if (tb < best) { best = tb; touche = null; }
+    return { d: Math.max(0, best), o: touche };
   }
+  const distanceLibre = (carte, x, y, a, L) => rayonObstacle(carte, x, y, a, L).d;
 
   /* ------------------------------------------------------------------ */
   /* Machine à états d'un combattant                                     */
@@ -247,7 +285,9 @@ window.ARENE_MOTEUR = (function () {
       steles: carte.steles.map((s, i) => ({ id: i, x: s.x, y: s.y, hp: R.STELES.PV, hpMax: R.STELES.PV })),
       zone: { cx: 0, cy: 0, r: zoneR0, pct: R.ZONE.DEGATS_PCT_S },
       fini: false, ordre: [], ev: [], nid: 1,
-      stats: { refus: 0, combos: 0, finals: 0, esquives: 0, evites: 0, specials: 0, amplifies: 0 }
+      /* règle stricte : le décor ne se casse que dans les modes prévus (Runes des Trophées) */
+      mode: opts.mode || 'runes', destructible: !!R.DECOR.DESTRUCTIBLE_SELON_MODE[opts.mode || 'runes'],
+      stats: { refus: 0, combos: 0, finals: 0, esquives: 0, evites: 0, specials: 0, amplifies: 0, embuscades: 0, decorTouche: 0, decorDetruit: 0 }
     };
 
     opts.participants.forEach((pa, i) => {
@@ -262,7 +302,7 @@ window.ARENE_MOTEUR = (function () {
         charges: CH.MAX, pauseRech: 0, dernierAppuiA: -9, ki: KI.DEPART, esqCd: 0, invul: 0, finEsq: -9,
         vivant: true, place: 0, elimT: 0, kills: 0, degats: 0, dDeg: -99, dTir: -99, parQui: -1, parQuiT: -99,
         lent: 0, lentF: 1, etourdi: 0, bouclier: 0, bouclierRed: 0, invisible: 0, bonusVit: 0, bonusProchain: 0,
-        salve: null, force: 0, brume: false, revele: 0, ia: null
+        salve: null, force: 0, cache: false, revele: 0, ia: null
       });
     });
 
@@ -314,6 +354,27 @@ window.ARENE_MOTEUR = (function () {
       return montant;
     }
 
+    /* ---------- décor tactique : dégâts, seuil, destruction ---------- */
+    function degatDecor(o, montant, src, sup) {
+      if (!o || o.pv <= 0) return;
+      S.stats.decorTouche++;
+      if (!S.destructible) { ev({ k: 'decor', id: o.id, r: 1 }); return; }           /* permanent dans ce mode */
+      if (montant < (o.seuil || 0)) { ev({ k: 'decor', id: o.id, r: 1 }); return; }   /* trop faible : il résiste */
+      o.pv = Math.max(0, o.pv - Math.round(montant));
+      ev({ k: 'decor', id: o.id, pv: o.pv });
+      if (o.pv <= 0) {
+        retirerDecor(carte, o);
+        S.stats.decorDetruit++;
+        const t = o.k === 'mur' ? { w: o.w, h: o.h } : { r: o.r };
+        ev(Object.assign({ k: 'detruit', id: o.id, t: o.k, x: +o.x.toFixed(2), y: +o.y.toFixed(2), o: src ? src.slot : -1 }, t));
+      }
+    }
+    /* explosion, frappe au sol, onde : tout le décor dans le rayon est touché */
+    function explosionDecor(x, y, r, montant, src) {
+      const m = montant * R.DECOR.PART_EXPLOSIONS;
+      for (const o of carte.murs.concat(carte.piliers, carte.cachettes)) if (distDecor(o, x, y) < r) degatDecor(o, m, src, true);
+    }
+
     function degatStele(s, montant, src, sup) {
       if (s.hp <= 0) return;
       s.hp -= Math.round(montant);
@@ -339,6 +400,8 @@ window.ARENE_MOTEUR = (function () {
     function lancerCoup(f, A, ang, dist, info) {
       /* info : { sup, fin (objet partagé par les projectiles du coup final), ampl } */
       let mult = multDegats(f) * (info.ampl ? KI.AMPLIFIE_PUISSANCE : 1);
+      /* embuscade : attaque lancée depuis une cachette sans avoir été repéré */
+      if (info.embuscade) { mult *= 1 + R.CACHETTES.EMBUSCADE_BONUS; S.stats.embuscades++; ev({ k: 'embuscade', s: f.slot, x: +f.x.toFixed(2), y: +f.y.toFixed(2) }); }
       const portee = (A.portee || 0) * (info.ampl ? KI.AMPLIFIE_PORTEE : 1);
       if (!info.sup && f.bonusProchain) { mult *= 1 + f.bonusProchain; f.bonusProchain = 0; }
       const forme = A.forme || PERSO[f.perso].forme;
@@ -382,6 +445,14 @@ window.ARENE_MOTEUR = (function () {
           let da = Math.atan2(dy, dx) - ang; da = Math.atan2(Math.sin(da), Math.cos(da));
           if (d < portee + RAYON_STELE && Math.abs(da) <= demiA + 0.3) degatStele(s, A.degats * mult, f, info.sup);
         }
+        /* décor dans l'arc (point le plus proche de l'élément) */
+        for (const o of carte.murs.concat(carte.piliers, carte.cachettes)) {
+          const qx = o.k === 'mur' ? clamp(f.x, o.x - o.w / 2, o.x + o.w / 2) : o.x, qy = o.k === 'mur' ? clamp(f.y, o.y - o.h / 2, o.y + o.h / 2) : o.y;
+          const d = o.k === 'mur' ? hyp(qx - f.x, qy - f.y) : distDecor(o, f.x, f.y);
+          if (d > portee) continue;
+          let da = Math.atan2(qy - f.y, qx - f.x) - ang; da = Math.atan2(Math.sin(da), Math.cos(da));
+          if (Math.abs(da) <= demiA + 0.35 || d < 0.3) degatDecor(o, A.degats * mult, f, info.sup);
+        }
         ev({ k: 'cone', x: +f.x.toFixed(2), y: +f.y.toFixed(2), a: +ang.toFixed(2), p: portee, l: A.angle || 60, o: f.slot, f: forme, fin: info.fin ? 1 : 0 });
       } else if (A.type === 'lob') {
         const d = clamp(dist == null ? portee : dist, 1, portee);
@@ -405,7 +476,7 @@ window.ARENE_MOTEUR = (function () {
 
     function lancerSpecial(f, ang, dist, ampl) {
       const Su = PERSO[f.perso].special, mult = multDegats(f) * (ampl ? KI.AMPLIFIE_PUISSANCE : 1), pk = ampl ? KI.AMPLIFIE_PORTEE : 1;
-      f.ang = ang; f.dTir = S.t; f.revele = R.BRUME.REVELE_APRES_TIR_S;
+      f.ang = ang; f.dTir = S.t; f.revele = R.CACHETTES.REVELE_APRES_TIR_S;
       S.stats.specials++; if (ampl) S.stats.amplifies++;
       ev({ k: 'super', s: f.slot, x: +f.x.toFixed(2), y: +f.y.toFixed(2), t: Su.type, ampl: ampl ? 1 : 0 });
       if (Su.type === 'tir' || Su.type === 'cone' || Su.type === 'lob') { lancerCoup(f, Su, ang, dist, { sup: true, ampl }); return changerEtat(f, 'libre'); }
@@ -427,6 +498,7 @@ window.ARENE_MOTEUR = (function () {
           const dx = e.x - f.x, dy = e.y - f.y, d = hyp(dx, dy);
           if (d < Su.rayon * pk + e.r && degat(e, Su.degats * mult, f, { sup: true })) pousser(e, dx, dy, Su.recul);
         }
+        explosionDecor(f.x, f.y, Su.rayon * pk, Su.degats * mult, f);
         ev({ k: 'onde', x: +f.x.toFixed(2), y: +f.y.toFixed(2), r: Su.rayon * pk, o: f.slot });
         return changerEtat(f, 'libre');
       }
@@ -530,8 +602,8 @@ window.ARENE_MOTEUR = (function () {
       f.pauseRech = CH.PAUSE_RECHARGE_S;
       f.combo = null; f.salve = null;
       changerEtat(f, 'attaque');
-      f.att = { def, etape, elan, t: 0, prep: def.prep || 0.08, recup: def.recup || 0.2, tire: false, a, d, fin: etape === 3 ? { kiDonne: false } : null };
-      f.ang = a; f.dTir = S.t; f.revele = R.BRUME.REVELE_APRES_TIR_S;
+      f.att = { def, etape, elan, t: 0, prep: def.prep || 0.08, recup: def.recup || 0.2, tire: false, a, d, fin: etape === 3 ? { kiDonne: false } : null, embuscade: f.cache && f.revele <= 0 };
+      f.ang = a; f.dTir = S.t; f.revele = R.CACHETTES.REVELE_APRES_TIR_S;
       if (f.invisible > 0) f.invisible = 0;
       if (etape >= 2) S.stats.combos++;
       ev({ k: 'atk', s: f.slot, e: etape, el: elan ? 1 : 0 });
@@ -604,7 +676,7 @@ window.ARENE_MOTEUR = (function () {
             }
             if (pasMax > 0) { const p = deplacerSurCarte(carte, f.x, f.y, ca * pasMax, sa * pasMax, f.r); f.x = p.x; f.y = p.y; }
           }
-          if (!A.tire && A.t >= A.prep) { A.tire = true; lancerCoup(f, A.def, A.a, A.d, { sup: false, fin: A.fin }); if (A.etape === 3) ev({ k: 'final', s: f.slot }); }
+          if (!A.tire && A.t >= A.prep) { A.tire = true; lancerCoup(f, A.def, A.a, A.d, { sup: false, fin: A.fin, embuscade: A.embuscade }); if (A.etape === 3) ev({ k: 'final', s: f.slot }); }
           if (A.t >= A.prep + A.recup) { f.combo = { etape: A.elan ? 1 : A.etape, ferme: S.t + CO.FERMETURE_S }; changerEtat(f, 'libre'); }
           break;
         }
@@ -641,6 +713,7 @@ window.ARENE_MOTEUR = (function () {
                 if (dd < P.r + e.r && degat(e, P.dmg, f, { sup: true })) { etourdir(e, P.etourdit); pousser(e, dx, dy, 1.2); }
               }
               for (const st of S.steles) if (st.hp > 0 && hyp(st.x - f.x, st.y - f.y) < P.r + RAYON_STELE) degatStele(st, P.dmg, f, true);
+              explosionDecor(f.x, f.y, P.r, P.dmg, f);
               ev({ k: 'impact', x: +f.x.toFixed(2), y: +f.y.toFixed(2), r: P.r, o: f.slot });
               changerEtat(f, 'libre');
             }
@@ -654,6 +727,7 @@ window.ARENE_MOTEUR = (function () {
               if (hyp(e.x - f.x, e.y - f.y) < f.r + e.r + 0.25) { P.touches.push(e.slot); if (degat(e, P.dmg, f, { sup: true })) pousser(e, P.dx, P.dy, P.recul); }
             }
             for (const st of S.steles) if (st.hp > 0 && hyp(st.x - f.x, st.y - f.y) < f.r + RAYON_STELE + 0.1 && P.touches.indexOf('s' + st.id) < 0) { P.touches.push('s' + st.id); degatStele(st, P.dmg, f, true); }
+            if (fait < pas * 0.3) degatDecor(obstacleEn(carte, f.x + P.dx * (f.r + 0.2), f.y + P.dy * (f.r + 0.2), 0.05), P.dmg, f, true);
             if (P.reste <= 0.01 || fait < pas * 0.3) changerEtat(f, 'libre');
           } else if (P.type === 'faisceau') {
             if (f.etatT >= P.T + R.DELAI_TICK_FAISCEAU_S * 0.5) changerEtat(f, 'libre');
@@ -703,7 +777,7 @@ window.ARENE_MOTEUR = (function () {
         f.hp -= f.hpMax * S.zone.pct * dt; f.dDeg = S.t;
         if (rnd() < dt * 3) ev({ k: 'hit', x: +f.x.toFixed(2), y: +f.y.toFixed(2), n: Math.round(f.hpMax * S.zone.pct / 3), s: f.slot, o: -1, z: 1 });
       }
-      f.brume = dansBrume(carte, f.x, f.y);
+      f.cache = !!dansCachette(carte, f.x, f.y);
     }
 
     /* ---------- projectiles et faisceaux ---------- */
@@ -717,10 +791,16 @@ window.ARENE_MOTEUR = (function () {
           else {
             p.t += dt; p.acc += dt;
             p.x = tireur.x + Math.cos(p.a) * 0.4; p.y = tireur.y + Math.sin(p.a) * 0.4;
-            p.l = distanceLibre(carte, p.x, p.y, p.a, p.L);
+            const ro = rayonObstacle(carte, p.x, p.y, p.a, p.L);
+            p.l = ro.d;
             const tick = R.DELAI_TICK_FAISCEAU_S, ca = Math.cos(p.a), sa = Math.sin(p.a);
             while (p.acc >= tick) {
               p.acc -= tick;
+              if (ro.o) degatDecor(ro.o, p.dmgTick * 3, tireur, true);   /* le faisceau ronge le mur qui l'arrête */
+              for (const b of carte.cachettes) {
+                const rx = b.x - p.x, ry = b.y - p.y, t = clamp(rx * ca + ry * sa, 0, p.l);
+                if (hyp(rx - ca * t, ry - sa * t) < b.r) degatDecor(b, p.dmgTick, tireur, true);
+              }
               for (const e of S.f) {
                 if (!e.vivant || e.slot === p.o) continue;
                 const rx = e.x - p.x, ry = e.y - p.y, t = clamp(rx * ca + ry * sa, 0, p.l), dd = hyp(rx - ca * t, ry - sa * t);
@@ -741,6 +821,7 @@ window.ARENE_MOTEUR = (function () {
           if (k >= 1) {
             for (const e of S.f) if (e.vivant && e.slot !== p.o && hyp(e.x - p.tx, e.y - p.ty) < p.r + e.r * 0.6) { if (degat(e, p.dmg, tireur, { sup: p.sup, fin: p.fin }) && p.etourdit) etourdir(e, p.etourdit); }
             for (const s of S.steles) if (s.hp > 0 && hyp(s.x - p.tx, s.y - p.ty) < p.r + RAYON_STELE) degatStele(s, p.dmg, tireur, p.sup);
+            explosionDecor(p.tx, p.ty, p.r, p.dmg, tireur);
             ev({ k: 'boum', x: +p.tx.toFixed(2), y: +p.ty.toFixed(2), r: p.r, o: p.o, f: p.forme });
             vivant = false;
           }
@@ -750,7 +831,11 @@ window.ARENE_MOTEUR = (function () {
             const sx = p.vx * dt / n, sy = p.vy * dt / n;
             p.x += sx; p.y += sy; p.reste -= hyp(sx, sy);
             if (p.reste <= 0 || Math.abs(p.x) > carte.demi || Math.abs(p.y) > carte.demi) { vivant = false; break; }
-            if (dansObstacle(carte, p.x, p.y, -0.05)) { vivant = false; ev({ k: 'mur', x: +p.x.toFixed(2), y: +p.y.toFixed(2), o: p.o, f: p.forme }); break; }
+            const ob = obstacleEn(carte, p.x, p.y, -0.05);
+            if (ob) { vivant = false; degatDecor(ob, p.dmg, tireur, p.sup); ev({ k: 'mur', x: +p.x.toFixed(2), y: +p.y.toFixed(2), o: p.o, f: p.forme, id: ob.id }); break; }
+            /* un tir qui traverse un fourré l'abîme (une fois par fourré) */
+            const ca2 = dansCachette(carte, p.x, p.y);
+            if (ca2 && p.touches.indexOf('c' + ca2.id) < 0) { p.touches.push('c' + ca2.id); degatDecor(ca2, p.dmg * R.DECOR.CACHETTE.PART_DES_TIRS, tireur, p.sup); }
             for (const e of S.f) {
               if (!e.vivant || e.slot === p.o || (e.proj && e.proj.type === 'saut') || p.touches.indexOf(e.slot) >= 0) continue;
               if (hyp(e.x - p.x, e.y - p.y) < e.r + p.r) {
@@ -787,6 +872,7 @@ window.ARENE_MOTEUR = (function () {
           const src = S.f[z.o];
           for (const e of S.f) if (e.vivant && e.slot !== z.o && hyp(e.x - z.x, e.y - z.y) < z.r + e.r * 0.5) { if (degat(e, z.dmg, src, { sup: true })) etourdir(e, z.etourdit); }
           for (const s of S.steles) if (s.hp > 0 && hyp(s.x - z.x, s.y - z.y) < z.r + RAYON_STELE) degatStele(s, z.dmg, src, true);
+          explosionDecor(z.x, z.y, z.r, z.dmg, src);
           ev({ k: 'foudre', x: +z.x.toFixed(2), y: +z.y.toFixed(2), r: z.r, o: z.o });
         } else garde.push(z);
       }
@@ -1010,6 +1096,12 @@ window.ARENE_MOTEUR = (function () {
             else if (t === 'invisibilite' && (dd < 7 || hpR < 0.4)) presser('S', { a: 0, d: 0 });
           }
         }
+      } else if (hpR < 0.5 && carte.cachettes.length) {
+        /* blessé et seul : se cacher dans un fourré pour récupérer (et préparer une embuscade) */
+        let cb = null, bd = 1e9;
+        for (const b of carte.cachettes) { const dd = hyp(b.x - f.x, b.y - f.y); if (dd < 13 && dd < bd && hyp(b.x - z.cx, b.y - z.cy) < z.r - 1.5) { bd = dd; cb = b; } }
+        if (cb) { tx = cb.x; ty = cb.y; }
+        else { tx = z.cx + (f.x - z.cx) * 0.5; ty = z.cy + (f.y - z.cy) * 0.5; }
       } else {
         let but = null, bd = 1e9;
         for (const ru of S.runes) { const dd = hyp(ru.x - f.x, ru.y - f.y); if (dd < 11 && dd < bd && hyp(ru.x - z.cx, ru.y - z.cy) < z.r - 1) { bd = dd; but = ru; } }
@@ -1072,7 +1164,7 @@ window.ARENE_MOTEUR = (function () {
       return {
         t: c2(S.t), z: c2(S.zone.r),
         f: S.f.map(f => [c2(f.x), c2(f.y), c2(f.ang), Math.max(0, Math.round(f.hp)), Math.round(f.hpMax), f.runes, c2(f.charges), Math.round(f.ki),
-          (f.vivant ? 1 : 0) | (f.etourdi > 0 ? 2 : 0) | (f.bouclier > 0 ? 4 : 0) | (f.invisible > 0 ? 8 : 0) | (f.lent > 0 ? 16 : 0) | (f.brume ? 32 : 0) | (f.revele > 0 ? 64 : 0) | (f.invul > 0 ? 128 : 0) | (f.esqCd > 0 ? 256 : 0),
+          (f.vivant ? 1 : 0) | (f.etourdi > 0 ? 2 : 0) | (f.bouclier > 0 ? 4 : 0) | (f.invisible > 0 ? 8 : 0) | (f.lent > 0 ? 16 : 0) | (f.cache ? 32 : 0) | (f.revele > 0 ? 64 : 0) | (f.invul > 0 ? 128 : 0) | (f.esqCd > 0 ? 256 : 0),
           f.place, f.force, f.kills, f.proj && f.proj.type === 'saut' ? c2(clamp(f.proj.t / f.proj.T, 0, 1)) : 0, f.lent > 0 ? c2(f.lentF) : 100, f.invisible > 0 ? c2(f.bonusVit) : 0,
           ETAT_CODE[f.etat] || 0, f.att ? f.att.etape : f.combo && S.t <= f.combo.ferme ? f.combo.etape : 0, f.spec ? c2(f.spec.a) : f.proj && f.proj.type === 'ruee' ? 1 : 0, c2(Math.max(0, f.esqCd))]),
         p: S.p.map(p => p.k === 'lob' ? [p.id, 1, c2(p.x0), c2(p.y0), c2(p.tx), c2(p.ty), c2(p.t), c2(p.T), c2(p.r), p.o, p.sup ? 1 : 0, FORMES.indexOf(p.forme)]
@@ -1081,6 +1173,7 @@ window.ARENE_MOTEUR = (function () {
         zs: S.z.map(z => [z.id, c2(z.x), c2(z.y), c2(z.r), c2(z.t), c2(z.T), z.o]),
         ru: S.runes.map(r => [r.id, c2(r.x), c2(r.y)]),
         st: S.steles.map(s => Math.max(0, Math.round(s.hp))),
+        dc: Object.values(carte.parId).filter(o => o.pv < o.pvMax).map(o => [o.id, Math.round(o.pv)]),
         ev: evs.slice(0, 60),
         fin: S.fini ? S.ordre.slice() : null
       };
@@ -1100,5 +1193,5 @@ window.ARENE_MOTEUR = (function () {
     return S;
   }
 
-  return { creerSimulation, genererCarte, deplacerSurCarte, segmentBloque, dansObstacle, dansBrume, visible, niveauBot, alea, distanceLibre, etapeDef, PERSO, RAYON_STELE, ETATS, FORMES };
+  return { creerSimulation, genererCarte, deplacerSurCarte, segmentBloque, dansObstacle, obstacleEn, dansCachette, rayonObstacle, retirerDecor, distDecor, visible, niveauBot, alea, distanceLibre, etapeDef, PERSO, RAYON_STELE, ETATS, FORMES };
 })();

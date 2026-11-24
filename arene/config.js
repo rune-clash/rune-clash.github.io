@@ -282,7 +282,23 @@ window.ARENE_CONFIG = (function () {
       ZONE: { DEBUT_S: 20, FIN_S: 160, RAYON_FINAL: 3, DEGATS_PCT_S: 0.07, DEGATS_PCT_S_MAX: 0.22 },
       STELES: { NOMBRE: 24, PV: 3600 },
       RUNES: { BONUS_DEGATS: 0.10, BONUS_PV: 0.08, MAX: 16 },
-      BRUME: { NOMBRE: 10, VISIBILITE: 3.2, REVELE_APRES_TIR_S: 1 }
+      /* Cachettes (fourrés de cristal) : on y est invisible à plus de VISIBILITE m des ennemis,
+         sauf pendant REVELE_APRES_TIR_S après avoir attaqué ou été touché.
+         Embuscade : la première attaque lancée depuis une cachette, sans être repéré, fait +EMBUSCADE_BONUS de dégâts. */
+      CACHETTES: { NOMBRE: 12, VISIBILITE: 3.2, REVELE_APRES_TIR_S: 1, EMBUSCADE_BONUS: 0.2 },
+      /* Décor tactique (murets, remparts, piliers, cachettes).
+         RÈGLE STRICTE : destructible UNIQUEMENT dans les modes listés dans DESTRUCTIBLE_SELON_MODE (Runes des Trophées) ;
+         dans tous les autres modes, le même décor est permanent (incassable).
+         PV : points de vie de l'élément · SEUIL : un coup plus faible que ça ne l'abîme pas (les petits tirs ne grignotent rien). */
+      DECOR: {
+        DESTRUCTIBLE_SELON_MODE: { runes: true },
+        MURET:    { PV: 3200, SEUIL: 500 },
+        REMPART:  { PV: 5400, SEUIL: 700 },
+        PILIER:   { PV: 4200, SEUIL: 600 },
+        CACHETTE: { PV: 1300, SEUIL: 0, PART_DES_TIRS: 0.35 },  // un tir qui traverse un fourré lui inflige 35 % de ses dégâts
+        PART_EXPLOSIONS: 1,                                       // dégâts des explosions et frappes au sol sur le décor
+        THEMES: ['feu', 'eau', 'foudre', 'terre', 'ombre', 'prisme']
+      }
     },
 
     /* ---------- Bots ----------

@@ -63,7 +63,8 @@ window.ARENE_RESEAU = (function () {
   /* Base commune des sessions qui simulent (locale et hôte)            */
   /* ------------------------------------------------------------------ */
   function sessionSimulee(participants, graine, moi) {
-    const sim = M.creerSimulation({ graine, participants });
+    /* ce mode est « Runes des Trophées » : décor destructible (voir REGLES.DECOR) */
+    const sim = M.creerSimulation({ graine, participants, mode: 'runes' });
     let E = { mx: 0, my: 0 };
     const appuis = [];
     let acc = 0, actif = false, minuteur = 0, dernier = 0;
@@ -214,7 +215,7 @@ window.ARENE_RESEAU = (function () {
       f: participants.map((p, i) => {
         const d = M.PERSO[p.perso], sp = carte.depart[i];
         return { slot: i, nom: p.nom, perso: p.perso, humain: p.humain, cadre: p.cadre || 'base', x: sp.x, y: sp.y, ang: Math.atan2(-sp.y, -sp.x), r: R.RAYON_COMBATTANT,
-          hp: d.pv, hpMax: d.pv, runes: 0, charges: R.CHARGES.MAX, ki: R.KI.DEPART, vivant: true, place: 0, kills: 0, force: 0, brume: false, revele: 0,
+          hp: d.pv, hpMax: d.pv, runes: 0, charges: R.CHARGES.MAX, ki: R.KI.DEPART, vivant: true, place: 0, kills: 0, force: 0, cache: false, revele: 0,
           etourdi: 0, bouclier: 0, invisible: 0, lent: 0, sautK: 0, etat: 'libre', comboE: 0, specA: 0, esqCd: 0, invul: 0, _a: null, _b: null };
       }),
       p: [], z: [], runes: [], steles: carte.steles.map((s, i) => ({ id: i, x: s.x, y: s.y, hp: R.STELES.PV, hpMax: R.STELES.PV }))
@@ -241,7 +242,7 @@ window.ARENE_RESEAU = (function () {
         const force = a[10];
         f.hp = a[3]; f.hpMax = a[4]; f.runes = a[5]; f.charges = a[6] / 100; f.ki = a[7];
         f.vivant = !!(fl & 1); f.etourdi = fl & 2 ? 1 : 0; f.bouclier = fl & 4 ? 1 : 0; f.invisible = fl & 8 ? 1 : 0; f.lent = fl & 16 ? 1 : 0;
-        f.brume = !!(fl & 32); f.revele = fl & 64 ? 1 : 0; f.invul = fl & 128 ? 1 : 0; f.sautK = a[12] / 100;
+        f.cache = !!(fl & 32); f.revele = fl & 64 ? 1 : 0; f.invul = fl & 128 ? 1 : 0; f.sautK = a[12] / 100;
         f.place = a[9]; f.kills = a[11];
         f.etat = M.ETATS[a[15]] || 'libre'; f.comboE = a[16] || 0; f.specA = (a[17] || 0) / 100; f.esqCd = (a[18] || 0) / 100;
         if (i === moi && dash) f.etat = 'esquive';
@@ -263,6 +264,8 @@ window.ARENE_RESEAU = (function () {
       vue.z = (s.zs || []).map(z => ({ id: z[0], x: z[1] / 100, y: z[2] / 100, r: z[3] / 100, t: z[4] / 100, T: z[5] / 100, o: z[6] }));
       vue.runes = (s.ru || []).map(r => ({ id: r[0], x: r[1] / 100, y: r[2] / 100 }));
       (s.st || []).forEach((hp, i) => { if (vue.steles[i]) vue.steles[i].hp = hp; });
+      /* décor abîmé ou détruit chez l'hôte : mêmes PV ici, et les éléments détruits sont retirés des collisions */
+      (s.dc || []).forEach(([id, pv]) => { const o = carte.parId[id]; if (!o || o.pv <= 0) return; o.pv = pv; if (pv <= 0) M.retirerDecor(carte, o); });
       const tRecu = now / 1000;
       (s.ev || []).forEach(e => { e._t = tRecu; evQ.push(e); });
       if (evQ.length > 300) evQ.splice(0, evQ.length - 300);
@@ -353,7 +356,7 @@ window.ARENE_RESEAU = (function () {
             me.x = p.x; me.y = p.y;
           }
         }
-        if (me) { me.brume = M.dansBrume(carte, me.x, me.y); me.esqCd = Math.max(0, me.esqCd - dt); }
+        if (me) { me.cache = !!M.dansCachette(carte, me.x, me.y); me.esqCd = Math.max(0, me.esqCd - dt); }
         /* les autres combattants : interpolation entre les deux derniers états */
         const tr = now - DELAI;
         for (const f of vue.f) {

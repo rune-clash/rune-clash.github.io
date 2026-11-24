@@ -9,7 +9,8 @@ Duels de héros en 3D : personnages originaux, Runes des Trophées à 10 joueurs
 - `arene/reseau.js` : le matchmaking (vrais joueurs en priorité, bots pour compléter) et les sessions locale / hôte / invité.
 - `arene/arene.css` : les styles du mode.
 - Combat : 3 charges anti-spam, combos par personnage (A·A·A, Esquive→A, A·A→Spécial), esquive, Ki et projections spéciales. Tous les réglages sont dans `arene/config.js` (CHARGES, COMBO, ESQUIVE, KI, MOUVEMENT, listes de coups).
-- Tests automatiques (Node, sans installation) : `node outils/tests-arene/moteur.test.js`, `node outils/tests-arene/reseau.test.js`, `node outils/tests-arene/equilibrage.js 160`.
+- Décor tactique : murets, remparts, piliers et fourrés-cachettes. Règle stricte : destructible uniquement dans Runes des Trophées (`REGLES.DECOR.DESTRUCTIBLE_SELON_MODE`), permanent dans tous les autres modes. PV et seuil de dégâts par élément dans `REGLES.DECOR`.
+- Tests automatiques (Node, sans installation) : `node outils/tests-arene/moteur.test.js`, `node outils/tests-arene/decor.test.js`, `node outils/tests-arene/reseau.test.js`, `node outils/tests-arene/equilibrage.js 160`.
 - Tester sur un serveur local : `python3 -m http.server`, puis ouvrir `http://localhost:8000/?arene_test=1` (les 10 personnages sont débloqués) ; `?netmock=1` simule le serveur en ligne entre plusieurs onglets.
 
 Le jeu s'installe comme une appli depuis le navigateur du téléphone et fonctionne hors ligne après la première ouverture.

@@ -53,9 +53,16 @@ setTimeout(() => {
         setTimeout(() => {
           const ev2 = hote.evenements().filter(e => e.s === g.moi);
           console.log('rafale invité : attaques', ev2.filter(e => e.k === 'atk').length, '(max 3) | refus', ev2.filter(e => e.k === 'refus').length, '| refus vus par l\'invité', g.evenements().filter(e => e.k === 'refus' && e.s === g.moi).length);
+      /* décor : un mur détruit chez l'hôte disparaît aussi chez les invités (collisions comprises) */
+      const mur = hote.sim.carte.murs[0];
+      window.ARENE_MOTEUR.retirerDecor(hote.sim.carte, Object.assign(mur, { pv: 0 }));
+      setTimeout(() => {
+        const ok = inv.every(s => !s.vue.carte.murs.some(m => m.id === mur.id) && s.vue.carte.murs.length === hote.sim.carte.murs.length);
+        console.log('décor synchronisé chez les invités :', ok);
+      }, 400);
       let finis = 0;
       sessions.forEach((s, i) => { s.onElimine(p => console.log('joueur', i, 'éliminé, place', p)); s.onFin(r => { finis++; const pl = r.places.slice().sort((a, b) => a - b).join(','); console.log('joueur', i, 'fin reçue', r.interrompue ? '(interrompue)' : '', 'places valides :', pl === '1,2,3,4,5,6,7,8,9,10'); }); });
-      hote.finirVite();
+      setTimeout(() => hote.finirVite(), 600);
       setTimeout(() => { console.log('fins reçues :', finis, '/ 3'); clearInterval(tick); process.exit(0); }, 2000);
         }, 1200);
       }, 500);
