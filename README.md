@@ -13,6 +13,12 @@ Duels de héros en 3D : personnages originaux, Runes des Trophées à 10 joueurs
 - Tests automatiques (Node, sans installation) : `node outils/tests-arene/moteur.test.js`, `node outils/tests-arene/decor.test.js`, `node outils/tests-arene/reseau.test.js`, `node outils/tests-arene/equilibrage.js 160`.
 - Tester sur un serveur local : `python3 -m http.server`, puis ouvrir `http://localhost:8000/?arene_test=1` (les 10 personnages sont débloqués) ; `?netmock=1` simule le serveur en ligne entre plusieurs onglets.
 
+## Contenus conformes (v23.3)
+- **Recrutement sans hasard** (remplace l'invocation au tirage) : le joueur choisit le héros ou l'emplacement d'objet et sait d'avance ce qu'il reçoit. Réglages en tête du bloc v23.3 de `index.html` (`REC23` : fragments par ticket selon la rareté, bonus ×10, objets de la Forge).
+- **Fâris, le Chevalier d'acier** (ancien « El Diablo », identifiant interne `eldiablo` conservé pour les sauvegardes) : `python3 outils/refaire_faris.py` rentre les cornes dans le casque et passe l'armure noir/rouge en acier bleuté.
+- **Tenues couvrantes** : `python3 outils/tenues_couvrantes.py rin seika …` repeint en tissu la peau des bras, du buste et des jambes (visage et mains intacts). `--apercu DOSSIER` produit des images avant/après sans rien modifier.
+- **Rythmes coupés par défaut** (une seule fois pour les anciennes sauvegardes ; réactivables dans Réglages > Son).
+
 Le jeu s'installe comme une appli depuis le navigateur du téléphone et fonctionne hors ligne après la première ouverture.
 
 ## Jeu en ligne (comptes, amis, clubs, duels)

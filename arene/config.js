@@ -61,7 +61,7 @@ window.ARENE_CONFIG = (function () {
       { trophees: 4500,  recompenses: [{ type: 'titre', nom: "Légende des Runes" }, { type: 'pieces', n: 10000 }, { type: 'boostPieces', n: 10 }] },
       { trophees: 5000,  recompenses: [{ type: 'decor', id: 'prisme' }, { type: 'tickets', n: 12 }, { type: 'fragments', heros: 'eldiablo', n: 40 }] },
       { trophees: 7500,  recompenses: [{ type: 'cadre', id: 'prisme' }, { type: 'eclats', n: 500 }, { type: 'tickets', n: 15 }] },
-      { trophees: 10000, recompenses: [{ type: 'titre', nom: "Immortel des Runes" }, { type: 'tickets', n: 30 }, { type: 'pieces', n: 50000 }] }
+      { trophees: 10000, recompenses: [{ type: 'titre', nom: "Grand Maître des Runes" }, { type: 'tickets', n: 30 }, { type: 'pieces', n: 50000 }] }
     ],
 
     /* Contours de combattant (récompenses « cadre »). */
@@ -80,7 +80,7 @@ window.ARENE_CONFIG = (function () {
      * id          : identifiant du héros du jeu (modèle 3D, vignette, élément).
      * deblocage   : 0 = disponible dès le départ, sinon débloqué par la Route (voir PALIERS).
      * pv          : points de vie de base.   vitesse : m/s.   rechargement : secondes pour regagner UNE charge.
-     * forme       : style visuel des projections (flamme, magma, lumiere, vague, etoile, abysse, fil, eclair, roc, neant).
+     * forme       : style visuel des projections (flamme, magma, lumiere, vague, etoile, abysse, fil, eclair, roc, neant = acier bleu de Fâris).
      *
      * LISTE DES COUPS (movelist), exécutée par le joueur, une pression = une charge :
      *   attaque   : étape 1        → touche Attaque
@@ -206,15 +206,15 @@ window.ARENE_CONFIG = (function () {
       },
       {
         id: 'eldiablo', classe: 'Chevalier', deblocage: 500, forme: 'neant',
-        resume: 'Sa lance transperce, sa faux balaie large, et sa charge damnée traverse tout.',
+        resume: 'Sa lance d\'acier transperce, sa fauche balaie large, et sa charge du serment traverse tout.',
         pv: 4700, vitesse: 4.3, rechargement: 1.5,
-        attaque: { nom: 'Lance du Néant', type: 'tir', degats: 720, portee: 4.6, projectiles: 1, vitesseProj: 30, rayon: 0.4, perce: true, prep: 0.09, recup: 0.2 },
+        attaque: { nom: 'Lance d\'acier', type: 'tir', degats: 720, portee: 4.6, projectiles: 1, vitesseProj: 30, rayon: 0.4, perce: true, prep: 0.09, recup: 0.2 },
         combo: [
           { nom: 'Fauche', type: 'cone', degats: 780, portee: 2.9, angle: 100, prep: 0.1, recup: 0.24 },
-          { nom: 'Empalement', type: 'tir', degats: 1150, portee: 5.5, projectiles: 1, vitesseProj: 32, rayon: 0.5, perce: true, recul: 3, etourdit: 0.35, avance: 0.8, prep: 0.16, recup: 0.32 }
+          { nom: 'Percée', type: 'tir', degats: 1150, portee: 5.5, projectiles: 1, vitesseProj: 32, rayon: 0.5, perce: true, recul: 3, etourdit: 0.35, avance: 0.8, prep: 0.16, recup: 0.32 }
         ],
         elan: { nom: 'Estoc', type: 'tir', degats: 900, portee: 5, projectiles: 1, vitesseProj: 32, rayon: 0.42, perce: true, avance: 1.5, prep: 0.05, recup: 0.24 },
-        special: { nom: 'Charge damnée', type: 'ruee', cout: 55, distance: 8, vitesse: 20, degats: 1300, recul: 5.5, prep: 0.15 }
+        special: { nom: 'Charge du serment', type: 'ruee', cout: 55, distance: 8, vitesse: 20, degats: 1300, recul: 5.5, prep: 0.15 }
       }
     ],
 

@@ -159,7 +159,7 @@
     const FORME_C = {
       flamme: ['#fff1a8', '#ff8a2a'], magma: ['#ffd38a', '#ff4a1c'], onde: ['#ffd38a', '#ff6a2a'], lumiere: ['#ffffff', '#ffe27a'],
       vague: ['#e6fbff', '#38b6ff'], etoile: ['#fff6ff', '#ff8ad8'], abysse: ['#c8fff4', '#1fb39a'], fil: ['#f2dcff', '#9d5cff'],
-      eclair: ['#f6eaff', '#b98cff'], roc: ['#f0d9b0', '#a0703a'], neant: ['#f0d4ff', '#7a2cc9']
+      eclair: ['#f6eaff', '#b98cff'], roc: ['#f0d9b0', '#a0703a'], neant: ['#eef4ff', '#3d7bff']
     };
     const formeDe = (o, p) => (p && p.forme) || (o && PERSO[o.perso] && PERSO[o.perso].forme) || 'flamme';
     const fc = f => FORME_C[f] || FORME_C.flamme;
@@ -722,7 +722,7 @@
 
       if (opt.visee && moiF && moiF.vivant) visee(moiF, opt.visee, t);
 
-      /* tempête du Néant (hors de la zone) */
+      /* tempête runique (hors de la zone) */
       const [zx, zy] = versEcran(vue.zone.cx, vue.zone.cy), zr = vue.zone.r * ech;
       if (zr < hyp(W, H) * 1.5) {
         ctx.save();

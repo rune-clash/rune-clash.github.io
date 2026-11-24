@@ -25,7 +25,7 @@ const CONTENU = {
   ],
   elements: 'Feu, Eau, Foudre, Terre, Ombre et Prisme : chaque élément a son effet (brûlure, ralentissement, paralysie, brise-armure, vol de ki ; le Prisme les réunit tous).',
   modes: ['Runes des Trophées', 'En ligne', 'Classé', '1 contre 1', '2 contre 2', 'Tournoi', 'Tour des Runes', 'Raid de boss', 'Défi du jour', 'Survie', 'Événement', 'Entraînement'],
-  progression: "Tout se débloque en jouant, avec des tickets d'invocation gagnés en combat et un ticket gratuit toutes les 20 minutes. Les chances sont affichées dans le jeu.",
+  progression: "Tout se débloque en jouant, avec des tickets de recrutement gagnés en combat et un ticket gratuit toutes les 20 minutes. Aucun hasard : tu choisis le héros ou l'objet que tu recrutes.",
 
   /* ---------- Fondateur : les grandes étapes ---------- */
   etapes: [
@@ -40,6 +40,12 @@ const CONTENU = {
   /* ---------- Mises à jour (la plus récente en premier) ----------
      Pour en ajouter une : copie un bloc { ... }, colle-le tout en haut de la liste et change le texte. */
   majs: [
+    { v: '23.3', date: '24 novembre 2026', titre: 'Recrutement sans hasard', points: [
+      "L'invocation au hasard disparaît : au Recrutement, tu choisis le héros (ou l'emplacement d'objet) et tu sais exactement ce que tu reçois.",
+      'El Diablo devient Fâris, le Chevalier d\'acier : armure d\'acier bleuté, plus de cornes, techniques renommées.',
+      'Tenues plus couvrantes pour les héroïnes, et les rythmes sont coupés par défaut (réactivables dans les réglages).',
+      'Créatures et techniques renommées : plus de démons, de liches ni de malédictions.'
+    ] },
     { v: '23.2', date: '24 novembre 2026', titre: 'Des arènes tactiques', points: [
       'Six ambiances d\'arène (braises, abysses, orage, racines, nuit, prisme) avec murets, remparts, ruines et piliers.',
       'Des fourrés de cristal pour se cacher : invisible de loin, et la première attaque depuis un fourré fait plus mal.',
