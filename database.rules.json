@@ -130,7 +130,7 @@
         ],
         "$uid": {
           ".write": "auth != null && auth.uid === $uid",
-          ".validate": "newData.hasChildren(['p', 'v', 't']) && newData.child('v').isNumber() && newData.child('v').val() >= 0 && newData.child('v').val() < 10000000 && newData.child('p').isString() && newData.child('p').val().length <= 16 && newData.child('t').val() === now && (!data.child('t').exists() || now - data.child('t').val() >= 10000) && (!$board.beginsWith('rk') || (newData.child('v').val() <= (data.exists() ? data.child('v').val() : 0) + 45 && (!data.child('t').exists() || now - data.child('t').val() >= 15000))) && ($board.beginsWith('rk') || !data.exists() || newData.child('v').val() >= data.child('v').val()) && ($board !== 'mem' || newData.child('v').val() <= 400) && ($board !== 'rune' || newData.child('v').val() <= 50) && ($board !== 'arcade' || newData.child('v').val() <= 1000000) && (!$board.beginsWith('dj') || newData.child('v').val() <= 8000) && ($board !== 'surv' || (newData.child('v').val() <= 1000 && (!data.exists() || newData.child('v').val() <= data.child('v').val() + 1 + (now - data.child('t').val()) / 10000))) && ($board !== 'tower' || (newData.child('v').val() <= 5000 && (!data.exists() || newData.child('v').val() <= data.child('v').val() + 3 + (now - data.child('t').val()) / 20000))) && ($board !== 'duel' || (newData.child('v').val() <= 100000 && (!data.exists() || newData.child('v').val() <= data.child('v').val() + 1 + (now - data.child('t').val()) / 20000)))"
+          ".validate": "newData.hasChildren(['p', 'v', 't']) && newData.child('v').isNumber() && newData.child('v').val() >= 0 && newData.child('v').val() < 10000000 && newData.child('p').isString() && newData.child('p').val().length <= 16 && newData.child('t').val() === now && (!data.child('t').exists() || now - data.child('t').val() >= 10000) && (!$board.beginsWith('rk') || (newData.child('v').val() <= (data.exists() ? data.child('v').val() : 0) + 45 && (!data.child('t').exists() || now - data.child('t').val() >= 15000))) && ($board.beginsWith('rk') || !data.exists() || newData.child('v').val() >= data.child('v').val()) && ($board !== 'mem' || newData.child('v').val() <= 400) && ($board !== 'rune' || newData.child('v').val() <= 50) && ($board !== 'arcade' || newData.child('v').val() <= 1000000) && (!$board.beginsWith('dj') || newData.child('v').val() <= 8000) && ($board !== 'surv' || (newData.child('v').val() <= 1000 && (!data.exists() || newData.child('v').val() <= data.child('v').val() + 1 + (now - data.child('t').val()) / 10000))) && ($board !== 'tower' || (newData.child('v').val() <= 5000 && (!data.exists() || newData.child('v').val() <= data.child('v').val() + 3 + (now - data.child('t').val()) / 20000))) && ($board !== 'duel' || (newData.child('v').val() <= 100000 && (!data.exists() || newData.child('v').val() <= data.child('v').val() + 1 + (now - data.child('t').val()) / 20000))) && ($board !== 'tr' || (newData.child('v').val() <= 100000 && newData.child('v').val() <= (data.exists() ? data.child('v').val() + 15 + (now - data.child('t').val()) * 15 / 20000 : 2000)))"
         }
       }
     },
@@ -334,6 +334,32 @@
           "$k": {
             ".write": "auth != null && newData.exists() && $d.matches(/^20[0-9]{6}$/) && $k.matches(/^(site|jouer|soutien|lance|nouveau|r1|r7|combats)$/)",
             ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1"
+          }
+        }
+      }
+    },
+    "arene": {
+      "salles": {
+        ".read": "auth != null",
+        ".indexOn": [
+          "cree"
+        ],
+        "$s": {
+          ".write": "auth != null && (data.exists() ? data.child('hote').val() === auth.uid : newData.child('hote').val() === auth.uid)",
+          ".validate": "!newData.exists() || newData.hasChildren(['hote', 'etat', 'v'])",
+          "etat": {
+            ".validate": "newData.isString() && newData.val().matches(/^(attente|jeu)$/)"
+          },
+          "joueurs": {
+            "$u": {
+              ".write": "auth != null && auth.uid === $u && (!newData.exists() || root.child('arene/salles/' + $s + '/etat').val() === 'attente')",
+              ".validate": "!newData.exists() || (newData.hasChildren(['n', 'p']) && newData.child('n').isString() && newData.child('n').val().length <= 16 && newData.child('p').isString() && newData.child('p').val().length <= 16)"
+            }
+          },
+          "in": {
+            "$u": {
+              ".write": "auth != null && auth.uid === $u && root.child('arene/salles/' + $s + '/participants').exists()"
+            }
           }
         }
       }

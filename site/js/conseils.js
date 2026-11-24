@@ -11,7 +11,7 @@
      conseilsPublics/   conseils publiés avec ta réponse (lisibles par tous)
      conseilsDernier/   heure du dernier envoi de chaque visiteur (1 conseil par minute)
      admins/<ton uid>   te donne les droits (à créer une fois dans la console Firebase)
-   Les règles de sécurité correspondantes sont dans regles-firebase-v18.json.
+   Les règles de sécurité correspondantes sont dans regles-firebase-v19.json.
    ============================================================================= */
 const Conseils = (function () {
   const SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
