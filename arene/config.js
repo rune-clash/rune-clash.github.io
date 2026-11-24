@@ -1,7 +1,7 @@
 /*
- * Rune Clash — Arène des Trophées
+ * Rune Clash — Runes des Trophées
  * ================================
- * CONFIGURATION CENTRALE DU MODE. Tout ce qui règle l'Arène se trouve ici :
+ * CONFIGURATION CENTRALE DU MODE. Tout ce qui règle le mode se trouve ici :
  *   - nombre de combattants par partie,
  *   - trophées gagnés / perdus selon la place,
  *   - paliers de la Route des Trophées et leurs récompenses,
@@ -16,7 +16,7 @@ window.ARENE_CONFIG = (function () {
   'use strict';
 
   const C = {
-    VERSION: 1,
+    VERSION: 2,              // version du protocole réseau : deux versions différentes ne jouent pas ensemble
 
     /* ---------- Partie ---------- */
     NB_JOUEURS: 10,
@@ -37,7 +37,7 @@ window.ARENE_CONFIG = (function () {
      * Types de récompense :
      *   pieces {n} · eclats {n} · tickets {n} · parchemins {n} · soins {soin, n}
      *   fragments {heros, n} · personnage {id} · decor {id} · titre {nom}
-     *   cadre {id} (contour du combattant dans l'Arène)
+     *   cadre {id} (contour du combattant dans le mode)
      *   bouclier {n}    : les n prochaines défaites ne coûtent aucun trophée
      *   boostPieces {n} : pièces ×2 pendant n parties
      * Une récompense se récupère dès que le RECORD de trophées atteint le palier
@@ -55,13 +55,13 @@ window.ARENE_CONFIG = (function () {
       { trophees: 500,   recompenses: [{ type: 'personnage', id: 'eldiablo' }, { type: 'titre', nom: 'Gladiateur' }, { type: 'pieces', n: 2000 }] },
       { trophees: 1000,  recompenses: [{ type: 'cadre', id: 'argent' }, { type: 'fragments', heros: 'kairo', n: 20 }, { type: 'decor', id: 'foudre' }] },
       { trophees: 1500,  recompenses: [{ type: 'tickets', n: 5 }, { type: 'bouclier', n: 2 }, { type: 'soins', soin: 'elixir', n: 3 }] },
-      { trophees: 2000,  recompenses: [{ type: 'titre', nom: "Champion de l'Arène" }, { type: 'decor', id: 'terre' }, { type: 'pieces', n: 5000 }] },
+      { trophees: 2000,  recompenses: [{ type: 'titre', nom: "Champion des Runes" }, { type: 'decor', id: 'terre' }, { type: 'pieces', n: 5000 }] },
       { trophees: 2500,  recompenses: [{ type: 'fragments', heros: 'astra', n: 30 }, { type: 'eclats', n: 200 }] },
       { trophees: 3000,  recompenses: [{ type: 'cadre', id: 'or' }, { type: 'tickets', n: 8 }, { type: 'decor', id: 'ombre' }] },
-      { trophees: 4500,  recompenses: [{ type: 'titre', nom: "Légende de l'Arène" }, { type: 'pieces', n: 10000 }, { type: 'boostPieces', n: 10 }] },
+      { trophees: 4500,  recompenses: [{ type: 'titre', nom: "Légende des Runes" }, { type: 'pieces', n: 10000 }, { type: 'boostPieces', n: 10 }] },
       { trophees: 5000,  recompenses: [{ type: 'decor', id: 'prisme' }, { type: 'tickets', n: 12 }, { type: 'fragments', heros: 'eldiablo', n: 40 }] },
       { trophees: 7500,  recompenses: [{ type: 'cadre', id: 'prisme' }, { type: 'eclats', n: 500 }, { type: 'tickets', n: 15 }] },
-      { trophees: 10000, recompenses: [{ type: 'titre', nom: "Immortel de l'Arène" }, { type: 'tickets', n: 30 }, { type: 'pieces', n: 50000 }] }
+      { trophees: 10000, recompenses: [{ type: 'titre', nom: "Immortel des Runes" }, { type: 'tickets', n: 30 }, { type: 'pieces', n: 50000 }] }
     ],
 
     /* Contours de combattant (récompenses « cadre »). */
@@ -77,86 +77,144 @@ window.ARENE_CONFIG = (function () {
     DECORS: { feu: 'Braises', eau: 'Abysses', foudre: 'Orage', terre: 'Racines', ombre: 'Nuit sans lune', prisme: 'Prisme' },
 
     /* ---------- Personnages ----------
-     * id        : identifiant du héros du jeu (modèle 3D, vignette, élément).
-     * deblocage : 0 = disponible dès le départ, sinon débloqué par la Route (voir PALIERS).
-     * pv        : points de vie de base.   vitesse : m/s.
-     * attaque   : tir principal (3 charges, rechargées une par une).
-     *   type 'tir'  : projectiles en ligne droite (projectiles, dispersion en degrés, salve…)
-     *   type 'cone' : frappe immédiate en arc de cercle devant soi
-     *   type 'lob'  : projectile en cloche qui passe au-dessus des murs et explose à l'arrivée
-     * super     : capacité spéciale, chargée en touchant des ennemis (charge = dégâts à infliger).
-     *   types : 'tir', 'ruee', 'bouclier', 'soin', 'invisibilite', 'zone', 'saut', 'attraction'
+     * id          : identifiant du héros du jeu (modèle 3D, vignette, élément).
+     * deblocage   : 0 = disponible dès le départ, sinon débloqué par la Route (voir PALIERS).
+     * pv          : points de vie de base.   vitesse : m/s.   rechargement : secondes pour regagner UNE charge.
+     * forme       : style visuel des projections (flamme, magma, lumiere, vague, etoile, abysse, fil, eclair, roc, neant).
+     *
+     * LISTE DES COUPS (movelist), exécutée par le joueur, une pression = une charge :
+     *   attaque   : étape 1        → touche Attaque
+     *   combo[0]  : étape 2        → Attaque à nouveau dans la fenêtre de combo
+     *   combo[1]  : étape 3, final → Attaque une 3e fois dans la fenêtre (3 charges = combo complet)
+     *   elan      : Esquive puis Attaque juste après (attaque d'élan)
+     *   special   : projection spéciale, payée en Ki (touche Spécial). Après 2 étapes de combo, elle coûte moins cher.
+     *
+     * Une étape : type 'tir' (projectiles), 'cone' (frappe en arc devant soi, angle 360 = tout autour) ou 'lob' (en cloche,
+     *   passe au-dessus des murs). prep = préparation (s) avant le coup, recup = récupération (s) après.
+     *   Propriétés : degats, portee, projectiles, dispersion (°), salve, vitesseProj, rayon, perce, recul (m),
+     *   etourdit (s, étourdissement), ralenti {duree, facteur}, avance (m, élan vers l'avant), forme (visuel).
+     * Projection spéciale : type 'tir', 'faisceau', 'ruee', 'bouclier', 'invisibilite', 'zone', 'saut', 'attraction' ; cout en Ki.
      */
     PERSONNAGES: [
       {
-        id: 'rin', classe: 'Assassin', deblocage: 0,
-        resume: 'Rapide et insaisissable : trois feux follets en éventail, puis une ruée enflammée.',
-        pv: 3800, vitesse: 4.9,
-        attaque: { nom: 'Feux follets', type: 'tir', degats: 460, portee: 5.2, rechargement: 1.25, projectiles: 3, dispersion: 22, vitesseProj: 17, rayon: 0.32 },
-        super: { nom: 'Ruée du renard', type: 'ruee', charge: 3000, distance: 6.5, vitesse: 22, degats: 1100, recul: 3 }
+        id: 'rin', classe: 'Assassin', deblocage: 0, forme: 'flamme',
+        resume: 'Rapide et insaisissable : enchaîne les feux follets et finit au corps à corps.',
+        pv: 4100, vitesse: 4.9, rechargement: 1.1,
+        attaque: { nom: 'Feu follet', type: 'tir', degats: 540, portee: 5.6, projectiles: 1, vitesseProj: 18, rayon: 0.32, prep: 0.07, recup: 0.16 },
+        combo: [
+          { nom: 'Queue de feu', type: 'tir', degats: 380, portee: 5.0, projectiles: 3, dispersion: 22, vitesseProj: 17, rayon: 0.3, prep: 0.08, recup: 0.18 },
+          { nom: 'Brasier rusé', type: 'cone', degats: 950, portee: 2.8, angle: 100, avance: 1.2, recul: 2.2, etourdit: 0.35, prep: 0.12, recup: 0.3 }
+        ],
+        elan: { nom: 'Griffe du renard', type: 'cone', degats: 720, portee: 2.4, angle: 70, avance: 1.8, prep: 0.05, recup: 0.22 },
+        special: { nom: 'Vague de feux follets', type: 'tir', cout: 45, degats: 520, portee: 6.5, projectiles: 7, dispersion: 50, vitesseProj: 16, rayon: 0.42, perce: true, prep: 0.18 }
       },
       {
-        id: 'bram', classe: 'Tank', deblocage: 0,
-        resume: 'Encaisse tout. Ses poings de lave frappent large et fort de près.',
-        pv: 6400, vitesse: 4.0,
-        attaque: { nom: 'Coulée de lave', type: 'cone', degats: 1050, portee: 3.0, angle: 70, rechargement: 1.45 },
-        super: { nom: 'Carapace de magma', type: 'bouclier', charge: 3600, duree: 3.5, reduction: 0.55, rayon: 3.0, degats: 900, recul: 4 }
+        id: 'bram', classe: 'Tank', deblocage: 0, forme: 'magma',
+        resume: 'Encaisse tout. Deux poings de lave, puis une coulée qui traverse et repousse.',
+        pv: 5300, vitesse: 4.0, rechargement: 1.5,
+        attaque: { nom: 'Poing de magma', type: 'cone', degats: 820, portee: 2.8, angle: 70, prep: 0.1, recup: 0.22 },
+        combo: [
+          { nom: 'Revers de lave', type: 'cone', degats: 840, portee: 2.8, angle: 90, recul: 1, prep: 0.1, recup: 0.24 },
+          { nom: 'Coulée de lave', type: 'tir', degats: 1100, portee: 5.5, projectiles: 1, vitesseProj: 11, rayon: 0.8, perce: true, recul: 3, forme: 'onde', prep: 0.18, recup: 0.35 }
+        ],
+        elan: { nom: "Charge d'épaule", type: 'cone', degats: 760, portee: 2.2, angle: 60, avance: 2.2, recul: 2.5, etourdit: 0.3, prep: 0.06, recup: 0.26 },
+        special: { nom: 'Carapace de magma', type: 'bouclier', cout: 55, duree: 3, reduction: 0.45, rayon: 3.0, degats: 900, recul: 4, prep: 0.15 }
       },
       {
-        id: 'hikari', classe: 'Tireuse d\'élite', deblocage: 0,
-        resume: 'Un rayon de lumière très long et précis. Sa couronne la soigne et la protège.',
-        pv: 3000, vitesse: 4.2,
-        attaque: { nom: 'Rayon d\'aurore', type: 'tir', degats: 1150, portee: 10.5, rechargement: 1.9, projectiles: 1, vitesseProj: 28, rayon: 0.3 },
-        super: { nom: 'Couronne de lumière', type: 'soin', charge: 3200, soin: 0.45, bouclierDuree: 3, reduction: 0.35 }
+        id: 'hikari', classe: "Tireuse d'élite", deblocage: 0, forme: 'lumiere',
+        resume: "Très longue portée. Son faisceau d'aurore balaie tout sur son passage, sauf derrière un mur.",
+        pv: 3500, vitesse: 4.3, rechargement: 1.6,
+        attaque: { nom: "Rayon d'aube", type: 'tir', degats: 1150, portee: 10.5, projectiles: 1, vitesseProj: 28, rayon: 0.28, prep: 0.12, recup: 0.22 },
+        combo: [
+          { nom: "Éclat d'aurore", type: 'tir', degats: 600, portee: 9.5, projectiles: 2, dispersion: 6, vitesseProj: 28, rayon: 0.26, prep: 0.1, recup: 0.22 },
+          { nom: 'Lance de lumière', type: 'tir', degats: 1250, portee: 11, projectiles: 1, vitesseProj: 32, rayon: 0.35, perce: true, recul: 1.5, prep: 0.2, recup: 0.3 }
+        ],
+        elan: { nom: 'Pas de lumière', type: 'tir', degats: 450, portee: 6, projectiles: 3, dispersion: 30, vitesseProj: 24, rayon: 0.26, prep: 0.05, recup: 0.2 },
+        special: { nom: "Jugement d'aurore", type: 'faisceau', cout: 55, degats: 2200, portee: 12, largeur: 0.45, duree: 1.0, prep: 0.3 }
       },
       {
-        id: 'mizuha', classe: 'Contrôle', deblocage: 50,
-        resume: 'Ses vagues traversent les ennemis. La marée haute repousse tout le monde.',
-        pv: 4200, vitesse: 4.2,
-        attaque: { nom: 'Vague royale', type: 'tir', degats: 720, portee: 7.5, rechargement: 1.35, projectiles: 1, vitesseProj: 13, rayon: 0.55, perce: true },
-        super: { nom: 'Marée haute', type: 'tir', charge: 3400, degats: 1000, portee: 8.5, projectiles: 1, vitesseProj: 12, rayon: 1.5, perce: true, recul: 5, soinLanceur: 0.2 }
+        id: 'mizuha', classe: 'Contrôle', deblocage: 50, forme: 'vague',
+        resume: 'Ses vagues traversent tout. Son tourbillon repousse ceux qui approchent.',
+        pv: 4200, vitesse: 4.2, rechargement: 1.35,
+        attaque: { nom: 'Goutte royale', type: 'tir', degats: 600, portee: 7.5, projectiles: 1, vitesseProj: 15, rayon: 0.45, perce: true, prep: 0.09, recup: 0.2 },
+        combo: [
+          { nom: 'Vague royale', type: 'tir', degats: 700, portee: 7.5, projectiles: 1, vitesseProj: 13, rayon: 0.62, perce: true, prep: 0.1, recup: 0.22 },
+          { nom: 'Tourbillon', type: 'cone', degats: 820, portee: 2.7, angle: 360, recul: 2.5, prep: 0.15, recup: 0.3 }
+        ],
+        elan: { nom: "Glissade d'écume", type: 'tir', degats: 460, portee: 6, projectiles: 2, dispersion: 16, vitesseProj: 16, rayon: 0.4, perce: true, prep: 0.05, recup: 0.2 },
+        special: { nom: 'Marée haute', type: 'tir', cout: 50, degats: 1000, portee: 9, projectiles: 1, vitesseProj: 12, rayon: 1.6, perce: true, recul: 5, soinLanceur: 0.2, prep: 0.2 }
       },
       {
-        id: 'seren', classe: 'Tireuse rapide', deblocage: 100,
-        resume: 'Une rafale d\'étoiles à moyenne portée. Sa constellation explose dans toutes les directions.',
-        pv: 3500, vitesse: 4.4,
-        attaque: { nom: 'Étoile filante', type: 'tir', degats: 340, portee: 7.0, rechargement: 1.1, projectiles: 1, salve: 3, intervalle: 0.09, vitesseProj: 21, rayon: 0.25 },
-        super: { nom: 'Constellation', type: 'tir', charge: 3000, degats: 560, portee: 6.5, projectiles: 16, dispersion: 360, vitesseProj: 15, rayon: 0.32 }
+        id: 'seren', classe: 'Tireuse rapide', deblocage: 100, forme: 'etoile',
+        resume: "Des rafales d'étoiles, une comète qui traverse, et une constellation dans toutes les directions.",
+        pv: 3900, vitesse: 4.4, rechargement: 1.0,
+        attaque: { nom: 'Étoile filante', type: 'tir', degats: 360, portee: 7.0, projectiles: 1, salve: 2, intervalle: 0.08, vitesseProj: 21, rayon: 0.25, prep: 0.06, recup: 0.18 },
+        combo: [
+          { nom: 'Pluie d\'étoiles', type: 'tir', degats: 300, portee: 7.0, projectiles: 1, salve: 3, intervalle: 0.08, vitesseProj: 21, rayon: 0.25, prep: 0.06, recup: 0.2 },
+          { nom: 'Comète', type: 'tir', degats: 1050, portee: 8, projectiles: 1, vitesseProj: 24, rayon: 0.45, perce: true, recul: 1.5, prep: 0.16, recup: 0.28 }
+        ],
+        elan: { nom: 'Pas céleste', type: 'tir', degats: 340, portee: 6, projectiles: 3, dispersion: 24, vitesseProj: 20, rayon: 0.25, prep: 0.05, recup: 0.2 },
+        special: { nom: 'Constellation', type: 'tir', cout: 50, degats: 560, portee: 6.5, projectiles: 16, dispersion: 360, vitesseProj: 15, rayon: 0.32, prep: 0.2 }
       },
       {
-        id: 'abyssa', classe: 'Embuscade', deblocage: 150,
-        resume: 'Morsures à moyenne portée. Le leurre la rend invisible et dope sa prochaine attaque.',
-        pv: 3700, vitesse: 4.5,
-        attaque: { nom: 'Morsure des fonds', type: 'tir', degats: 470, portee: 6.0, rechargement: 1.35, projectiles: 2, dispersion: 8, vitesseProj: 18, rayon: 0.3 },
-        super: { nom: 'Leurre', type: 'invisibilite', charge: 2800, duree: 4, bonusVitesse: 0.3, bonusProchaineAttaque: 0.8 }
+        id: 'abyssa', classe: 'Embuscade', deblocage: 150, forme: 'abysse',
+        resume: 'Morsures à moyenne portée, pression qui ralentit, et un leurre pour disparaître.',
+        pv: 3700, vitesse: 4.5, rechargement: 1.3,
+        attaque: { nom: 'Morsure des fonds', type: 'tir', degats: 420, portee: 6.0, projectiles: 2, dispersion: 8, vitesseProj: 18, rayon: 0.3, prep: 0.07, recup: 0.18 },
+        combo: [
+          { nom: 'Double morsure', type: 'tir', degats: 470, portee: 6.0, projectiles: 2, dispersion: 4, vitesseProj: 19, rayon: 0.3, prep: 0.07, recup: 0.2 },
+          { nom: 'Pression noire', type: 'cone', degats: 950, portee: 2.6, angle: 80, avance: 1, ralenti: { duree: 1, facteur: 0.6 }, prep: 0.12, recup: 0.3 }
+        ],
+        elan: { nom: 'Plongée', type: 'cone', degats: 800, portee: 2.4, angle: 70, avance: 2, prep: 0.05, recup: 0.24 },
+        special: { nom: 'Leurre des fonds', type: 'invisibilite', cout: 40, duree: 4, bonusVitesse: 0.3, bonusProchaineAttaque: 0.8, prep: 0.1 }
       },
       {
-        id: 'shiki', classe: 'Marionnettiste', deblocage: 200,
-        resume: 'Ses fils ralentissent. Le fil du destin attire tous les ennemis d\'une zone.',
-        pv: 3900, vitesse: 4.3,
-        attaque: { nom: 'Fils du destin', type: 'tir', degats: 480, portee: 7.0, rechargement: 1.35, projectiles: 2, dispersion: 14, vitesseProj: 16, rayon: 0.28, ralenti: { duree: 1.2, facteur: 0.6 } },
-        super: { nom: 'Ballet macabre', type: 'attraction', charge: 3200, portee: 7.5, rayon: 3.4, degats: 700, force: 4.5, etourdit: 0.6 }
+        id: 'shiki', classe: 'Marionnettiste', deblocage: 200, forme: 'fil',
+        resume: "Ses fils ralentissent, son nœud étourdit, et son ballet attire tout le monde vers elle.",
+        pv: 3900, vitesse: 4.3, rechargement: 1.35,
+        attaque: { nom: 'Fil du destin', type: 'tir', degats: 560, portee: 7.0, projectiles: 1, vitesseProj: 16, rayon: 0.28, ralenti: { duree: 1, facteur: 0.65 }, prep: 0.08, recup: 0.2 },
+        combo: [
+          { nom: 'Fils croisés', type: 'tir', degats: 480, portee: 7.0, projectiles: 2, dispersion: 14, vitesseProj: 16, rayon: 0.28, ralenti: { duree: 1, facteur: 0.65 }, prep: 0.08, recup: 0.22 },
+          { nom: 'Nœud du destin', type: 'tir', degats: 800, portee: 7.5, projectiles: 1, vitesseProj: 18, rayon: 0.4, perce: true, etourdit: 0.4, prep: 0.15, recup: 0.3 }
+        ],
+        elan: { nom: 'Pas de marionnette', type: 'tir', degats: 360, portee: 6, projectiles: 3, dispersion: 30, vitesseProj: 17, rayon: 0.26, prep: 0.05, recup: 0.2 },
+        special: { nom: 'Ballet macabre', type: 'attraction', cout: 45, portee: 7.5, rayon: 3.4, degats: 1050, force: 4.5, etourdit: 0.6, prep: 0.2 }
       },
       {
-        id: 'raimei', classe: 'Artilleur', deblocage: 300,
-        resume: 'Ses éclairs tombent du ciel par-dessus les murs. La cage d\'éclairs étourdit.',
-        pv: 3300, vitesse: 4.1,
-        attaque: { nom: 'Foudre noire', type: 'lob', degats: 900, portee: 8.0, rechargement: 1.7, rayon: 1.25, delai: 0.6 },
-        super: { nom: 'Cage d\'éclairs', type: 'zone', charge: 3000, portee: 8.5, rayon: 2.8, degats: 1300, delai: 0.8, etourdit: 1.3 }
+        id: 'raimei', classe: 'Artilleur', deblocage: 300, forme: 'eclair',
+        resume: "Ses éclairs tombent du ciel par-dessus les murs. Le tonnerre final étourdit.",
+        pv: 3500, vitesse: 4.1, rechargement: 1.55,
+        attaque: { nom: 'Foudre noire', type: 'lob', degats: 950, portee: 8.0, rayon: 1.2, delai: 0.6, prep: 0.1, recup: 0.22 },
+        combo: [
+          { nom: 'Double foudre', type: 'lob', degats: 700, portee: 8.0, rayon: 1.1, delai: 0.5, prep: 0.1, recup: 0.22 },
+          { nom: 'Tonnerre', type: 'lob', degats: 1000, portee: 8.5, rayon: 1.6, delai: 0.75, etourdit: 0.5, prep: 0.16, recup: 0.3 }
+        ],
+        elan: { nom: 'Arc électrique', type: 'tir', degats: 600, portee: 5.5, projectiles: 1, vitesseProj: 26, rayon: 0.3, prep: 0.05, recup: 0.2 },
+        special: { nom: "Cage d'éclairs", type: 'zone', cout: 55, portee: 8.5, rayon: 2.8, degats: 1300, delai: 0.8, etourdit: 1.3, prep: 0.2 }
       },
       {
-        id: 'tsuchi', classe: 'Colosse', deblocage: 400,
-        resume: 'Montagne vivante. Son saut écrase tout dans la zone d\'impact.',
-        pv: 7000, vitesse: 3.8,
-        attaque: { nom: 'Pas du titan', type: 'cone', degats: 880, portee: 3.2, angle: 100, rechargement: 1.75 },
-        super: { nom: 'Montagne sacrée', type: 'saut', charge: 3800, portee: 7.5, rayon: 2.6, degats: 1500, etourdit: 0.9, duree: 0.65 }
+        id: 'tsuchi', classe: 'Colosse', deblocage: 400, forme: 'roc',
+        resume: 'Montagne vivante. Ses éboulements traversent, son saut écrase tout dans la zone.',
+        pv: 5100, vitesse: 3.6, rechargement: 2.0,
+        attaque: { nom: 'Poing de roc', type: 'cone', degats: 660, portee: 2.9, angle: 80, prep: 0.12, recup: 0.24 },
+        combo: [
+          { nom: 'Pas du titan', type: 'cone', degats: 700, portee: 3.0, angle: 100, prep: 0.12, recup: 0.26 },
+          { nom: 'Éboulement', type: 'tir', degats: 1000, portee: 6, projectiles: 1, vitesseProj: 10, rayon: 0.9, perce: true, recul: 2.5, etourdit: 0.3, forme: 'onde', prep: 0.22, recup: 0.38 }
+        ],
+        elan: { nom: 'Bélier', type: 'cone', degats: 900, portee: 2.4, angle: 70, avance: 2, recul: 3, prep: 0.06, recup: 0.28 },
+        special: { nom: 'Montagne sacrée', type: 'saut', cout: 60, portee: 7.0, rayon: 2.4, degats: 1200, etourdit: 0.6, duree: 0.65, prep: 0.3 }
       },
       {
-        id: 'eldiablo', classe: 'Chevalier', deblocage: 500,
-        resume: 'Sa lance transperce en ligne. Sa charge damnée traverse et projette.',
-        pv: 5600, vitesse: 4.3,
-        attaque: { nom: 'Lance du Néant', type: 'tir', degats: 900, portee: 4.6, rechargement: 1.35, projectiles: 1, vitesseProj: 30, rayon: 0.42, perce: true },
-        super: { nom: 'Charge damnée', type: 'ruee', charge: 3400, distance: 8, vitesse: 20, degats: 1500, recul: 5.5 }
+        id: 'eldiablo', classe: 'Chevalier', deblocage: 500, forme: 'neant',
+        resume: 'Sa lance transperce, sa faux balaie large, et sa charge damnée traverse tout.',
+        pv: 4700, vitesse: 4.3, rechargement: 1.5,
+        attaque: { nom: 'Lance du Néant', type: 'tir', degats: 720, portee: 4.6, projectiles: 1, vitesseProj: 30, rayon: 0.4, perce: true, prep: 0.09, recup: 0.2 },
+        combo: [
+          { nom: 'Fauche', type: 'cone', degats: 780, portee: 2.9, angle: 100, prep: 0.1, recup: 0.24 },
+          { nom: 'Empalement', type: 'tir', degats: 1150, portee: 5.5, projectiles: 1, vitesseProj: 32, rayon: 0.5, perce: true, recul: 3, etourdit: 0.35, avance: 0.8, prep: 0.16, recup: 0.32 }
+        ],
+        elan: { nom: 'Estoc', type: 'tir', degats: 900, portee: 5, projectiles: 1, vitesseProj: 32, rayon: 0.42, perce: true, avance: 1.5, prep: 0.05, recup: 0.24 },
+        special: { nom: 'Charge damnée', type: 'ruee', cout: 55, distance: 8, vitesse: 20, degats: 1300, recul: 5.5, prep: 0.15 }
       }
     ],
 
@@ -185,8 +243,40 @@ window.ARENE_CONFIG = (function () {
     REGLES: {
       TAILLE: 50,                       // côté de l'arène carrée
       RAYON_COMBATTANT: 0.55,
-      MUNITIONS: 3,
-      INTERVALLE_TIR_MIN: 0.28,         // délai minimal entre deux attaques
+      /* Anti-spam : 3 charges au maximum. Chaque pression d'attaque (ou étape de combo) en consomme une.
+         Une pression trop rapprochée de la précédente, ou sans charge disponible, est refusée (retour visuel et sonore). */
+      CHARGES: {
+        MAX: 3,
+        INTERVALLE_MIN_S: 0.12,         // deux pressions plus rapprochées que ça : la seconde est refusée
+        TAMPON_S: 0.15,                 // une pression un peu en avance est gardée et exécutée dès que possible
+        PAUSE_RECHARGE_S: 0.35          // la recharge reprend ce délai après la dernière attaque
+      },
+      /* Fenêtres de combo : la pression suivante enchaîne l'étape d'après si elle arrive entre
+         « mi-récupération de l'étape en cours » et « fin de récupération + FERMETURE_S ». Plus tôt : refusée (hors tampon). */
+      COMBO: {
+        OUVERTURE_RECUP: 0.5,           // la fenêtre s'ouvre à mi-récupération de l'étape en cours (trop tôt = refusé)
+        FERMETURE_S: 0.45,              // et se ferme ce délai après la fin de la récupération
+        ELAN_FENETRE_S: 0.35,           // Esquive puis Attaque dans ce délai : attaque d'élan
+        ANNULATION_RECUP: 0.5,          // part de la récupération qu'une esquive ou une projection peut annuler
+        REDUCTION_KI_APRES_COMBO: 0.25, // projection lancée après 2 étapes de combo : coût en Ki réduit de 25 %
+        KI_BONUS_FINAL: 8               // Ki gagné quand l'étape finale touche
+      },
+      ESQUIVE: { DISTANCE: 3.2, DUREE_S: 0.22, INVULNERABLE_S: 0.18, RECHARGE_S: 1.6 },
+      KI: {
+        MAX: 100, DEPART: 20,
+        PAR_SECONDE: 1.5,               // gain passif
+        PAR_DEGAT_INFLIGE: 1 / 40,      // 1 point de Ki par 40 dégâts infligés à un combattant
+        PAR_DEGAT_RECU: 1 / 90,
+        FACTEUR_STELE: 0.25,            // frapper une stèle rapporte moins
+        PAR_RUNE: 6,
+        AMPLIFIE_SEUIL: 100,            // projection lancée avec le Ki plein : amplifiée (tout le Ki est consommé)
+        AMPLIFIE_PUISSANCE: 1.35,
+        AMPLIFIE_PORTEE: 1.2
+      },
+      /* Vitesse de déplacement selon l'état du combattant (1 = vitesse normale). */
+      MOUVEMENT: { ATTAQUE: 0.55, PREPARATION: 0.3, FAISCEAU: 0, RECUPERATION_ETOURDI: 0.6 },
+      ETOURDI_MAX_S: 2,                  // sécurité anti-blocage
+      DELAI_TICK_FAISCEAU_S: 0.1,
       DUREE_MAX_S: 220,                 // sécurité : au-delà, classement aux points de vie
       REGEN: { DELAI_S: 3, PCT_PAR_S: 0.12 },
       ZONE: { DEBUT_S: 20, FIN_S: 160, RAYON_FINAL: 3, DEGATS_PCT_S: 0.07, DEGATS_PCT_S_MAX: 0.22 },
@@ -199,11 +289,13 @@ window.ARENE_CONFIG = (function () {
      * Le niveau s'adapte aux trophées du joueur (ou à la moyenne des vrais joueurs).
      */
     BOTS: {
+      /* precision : visée · reaction : délai entre deux décisions (s) · agressivite · esquive : chance d'esquiver un danger
+         combo : chance d'enchaîner un combo complet (avec le bon rythme) · specialSage : bon usage du Ki */
       NIVEAUX: [
-        { jusqua: 150,      precision: 0.55, reaction: 0.55, agressivite: 0.45, esquive: 0.15, superSage: 0.4 },
-        { jusqua: 600,      precision: 0.7,  reaction: 0.4,  agressivite: 0.6,  esquive: 0.35, superSage: 0.65 },
-        { jusqua: 2000,     precision: 0.82, reaction: 0.28, agressivite: 0.7,  esquive: 0.55, superSage: 0.85 },
-        { jusqua: Infinity, precision: 0.9,  reaction: 0.2,  agressivite: 0.8,  esquive: 0.7,  superSage: 1 }
+        { jusqua: 150,      precision: 0.55, reaction: 0.5,  agressivite: 0.45, esquive: 0.15, combo: 0.35, specialSage: 0.4 },
+        { jusqua: 600,      precision: 0.7,  reaction: 0.38, agressivite: 0.6,  esquive: 0.35, combo: 0.55, specialSage: 0.65 },
+        { jusqua: 2000,     precision: 0.82, reaction: 0.28, agressivite: 0.7,  esquive: 0.55, combo: 0.75, specialSage: 0.85 },
+        { jusqua: Infinity, precision: 0.9,  reaction: 0.2,  agressivite: 0.8,  esquive: 0.7,  combo: 0.9,  specialSage: 1 }
       ],
       NOMS: ['Kazeko', 'Lune_Rousse', 'Ombrefeu', 'Sora44', 'Tempêtine', 'Rokku', 'Yugen', 'Brasero', 'Nébule', 'Akari_7',
              'Hoshiko', 'Grêlon', 'Mokuzai', 'Vif-Argent', 'Taiko', 'Saphira', 'Kumo', 'Ébène', 'Raijin_9', 'Fennec']
@@ -221,6 +313,9 @@ window.ARENE_CONFIG = (function () {
     pl.recompenses.forEach(r => { if (r.type === 'personnage' && ids.indexOf(r.id) < 0) err('personnage inconnu ' + r.id); });
   });
   C.PERSONNAGES.forEach(x => {
+    if (!x.attaque || !x.combo || x.combo.length !== 2 || !x.elan || !x.special) err(x.id + ' : liste de coups incomplète');
+    if (!(x.special.cout > 0) || x.special.cout > C.REGLES.KI.MAX) err(x.id + ' : coût en Ki invalide');
+    if (!(x.rechargement > 0)) err(x.id + ' : rechargement manquant');
     if (x.deblocage && !C.PALIERS.some(pl => pl.trophees === x.deblocage && pl.recompenses.some(r => r.type === 'personnage' && r.id === x.id)))
       err(x.id + ' : aucun palier ne le débloque à ' + x.deblocage + ' trophées');
   });

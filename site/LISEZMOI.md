@@ -43,7 +43,7 @@ Rangé là, le site utilise tout seul le `config.js` du jeu pour se connecter au
 
 ## Boîte à conseils : à faire une seule fois
 
-1. **Règles** : console Firebase > Realtime Database > Règles. Remplace tout par le contenu de `regles-firebase-v19.json`, puis Publier. (Ce fichier contient les règles du jeu, des conseils et des salles de l'Arène des Trophées.)
+1. **Règles** : console Firebase > Realtime Database > Règles. Remplace tout par le contenu de `regles-firebase-v19.json`, puis Publier. (Ce fichier contient les règles du jeu, des conseils et des salles des Runes des Trophées.)
 2. **Connexion anonyme** : console Firebase > Authentication > Méthodes de connexion > Anonyme > Activer. C'est ce qui permet aux visiteurs d'envoyer un conseil sans créer de compte.
 3. **Tes droits de fondateur** : ouvre `…/site/#espace-fondateur` (lien « Espace fondateur » en bas de page) et connecte-toi avec ton compte du jeu. La page affiche ton identifiant. Dans la console Firebase > Realtime Database > Données, ajoute `admins` > ton identifiant > `true`. Recharge la page.
 

@@ -24,7 +24,7 @@ const CONTENU = {
     { t: 'Une équipe de trois', d: 'Change de héros à tout moment pendant le combat.' }
   ],
   elements: 'Feu, Eau, Foudre, Terre, Ombre et Prisme : chaque élément a son effet (brûlure, ralentissement, paralysie, brise-armure, vol de ki ; le Prisme les réunit tous).',
-  modes: ['Arène des Trophées', 'En ligne', 'Classé', '1 contre 1', '2 contre 2', 'Tournoi', 'Tour des Runes', 'Raid de boss', 'Défi du jour', 'Survie', 'Événement', 'Entraînement'],
+  modes: ['Runes des Trophées', 'En ligne', 'Classé', '1 contre 1', '2 contre 2', 'Tournoi', 'Tour des Runes', 'Raid de boss', 'Défi du jour', 'Survie', 'Événement', 'Entraînement'],
   progression: "Tout se débloque en jouant, avec des tickets d'invocation gagnés en combat et un ticket gratuit toutes les 20 minutes. Les chances sont affichées dans le jeu.",
 
   /* ---------- Fondateur : les grandes étapes ---------- */
@@ -40,11 +40,18 @@ const CONTENU = {
   /* ---------- Mises à jour (la plus récente en premier) ----------
      Pour en ajouter une : copie un bloc { ... }, colle-le tout en haut de la liste et change le texte. */
   majs: [
-    { v: '23.0', date: '19 novembre 2026', titre: 'Arène des Trophées', points: [
+    { v: '23.1', date: '24 novembre 2026', titre: 'Combat plus technique', points: [
+      "3 charges d'attaque au maximum : marteler les boutons ne sert plus à rien, le rythme compte.",
+      'Chaque personnage a sa liste de coups : combos à 3 étapes, attaque après une esquive, coup final.',
+      'Nouvelle esquive avec un court instant d\'invulnérabilité.',
+      'Le Ki remplace le super : chaque personnage a sa propre projection (faisceau, vague, constellation…), plus forte avec le Ki plein.',
+      'Bots plus malins : combos, esquives, abris derrière les murs, et toujours sans spam.'
+    ] },
+    { v: '23.0', date: '19 novembre 2026', titre: 'Runes des Trophées', points: [
       'Nouveau mode compétitif : 10 combattants dans la même arène, le dernier debout gagne.',
       'Dix personnages au choix, chacun avec son attaque et son super. De vrais joueurs en priorité, des bots pour compléter.',
       'Des trophées à chaque partie et une Route des Trophées avec des récompenses à chaque palier.',
-      "L'ancien mode scénarisé est retiré ; les modes se débloquent maintenant en jouant dans l'Arène."
+      "L'ancien mode scénarisé est retiré ; les modes se débloquent maintenant en jouant aux Runes des Trophées."
     ] },
     { v: '18.1', date: '12 novembre 2026', titre: 'Un seul compte pour le site et le jeu', points: [
       'Nouvelle page Compte sur le site : se connecter ou créer un compte.',

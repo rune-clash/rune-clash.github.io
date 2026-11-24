@@ -1,5 +1,5 @@
 /*
- * Rune Clash — Arène des Trophées : MATCHMAKING ET SESSIONS
+ * Rune Clash — Runes des Trophées : MATCHMAKING ET SESSIONS
  * ========================================================
  * Architecture modulaire :
  *
@@ -17,7 +17,7 @@
  *
  *   Interface commune d'une session :
  *       moi, participants, vue, enLigne, role
- *       commandes({mx,my}) · tirer({a,d}) · superr({a,d})
+ *       commandes({mx,my}) · tirer({a,d}) · esquiver({a}) · superr({a,d})   (une pression = un appel ; l'anti-spam est dans le moteur)
  *       demarrer() · maj(dt) · evenements() · quitter() · arreter()
  *       onElimine(cb(place)) · onFin(cb({places, interrompue}))
  *
@@ -64,7 +64,8 @@ window.ARENE_RESEAU = (function () {
   /* ------------------------------------------------------------------ */
   function sessionSimulee(participants, graine, moi) {
     const sim = M.creerSimulation({ graine, participants });
-    let E = { mx: 0, my: 0 }, tirReq = null, supReq = null, tirT = 0, supT = 0;
+    let E = { mx: 0, my: 0 };
+    const appuis = [];
     let acc = 0, actif = false, minuteur = 0, dernier = 0;
     const evLocal = [];
     const cb = { elimine: [], fin: [], pas: [] };
@@ -73,8 +74,10 @@ window.ARENE_RESEAU = (function () {
       moi, participants, vue: sim, sim, enLigne: false, role: 'locale',
       entreesDistantes: {},
       commandes(e) { E = e; },
-      tirer(r) { tirReq = r; tirT = 0.18; },
-      superr(r) { supReq = r; supT = 0.18; },
+      tirer(r) { if (r && appuis.length < 6) appuis.push({ act: 'A', a: r.a, d: r.d }); },
+      esquiver(r) { if (appuis.length < 6) appuis.push({ act: 'E', a: r && isFinite(r.a) ? r.a : (sim.f[moi] ? sim.f[moi].ang : 0), d: 0 }); },
+      superr(r) { if (r && appuis.length < 6) appuis.push({ act: 'S', a: r.a, d: r.d }); },
+      coutSpecial() { const f = sim.f[moi]; return f ? sim.coutSpecial(f) : 0; },
       onElimine(f) { cb.elimine.push(f); },
       onFin(f) { cb.fin.push(f); },
       onPas(f) { cb.pas.push(f); },
@@ -110,14 +113,10 @@ window.ARENE_RESEAU = (function () {
     function avancer(dt) {
       const ent = {};
       for (const k in S.entreesDistantes) ent[k] = S.entreesDistantes[k];
-      const moiE = { mx: E.mx, my: E.my, tir: tirReq, sup: supReq };
-      ent[moi] = moiE;
+      /* chaque pression n'est transmise qu'une fois : le tampon et l'anti-spam sont gérés par le moteur */
+      ent[moi] = { mx: E.mx, my: E.my, appuis: appuis.splice(0) };
       sim.pas(dt, ent);
-      const f = sim.f[moi];
-      /* une demande de tir reste valable un court instant (tir pendant le délai minimal) */
-      if (tirReq) { tirT -= dt; if (!f || f.dTir === sim.t || tirT <= 0) tirReq = null; }
-      if (supReq) { supT -= dt; if (!f || f.sup < 1 || supT <= 0) supReq = null; }
-      for (const k in S.entreesDistantes) { const d = S.entreesDistantes[k]; d.tir = null; d.sup = null; d.px = d.py = null; }
+      for (const k in S.entreesDistantes) { const d = S.entreesDistantes[k]; d.appuis = []; d.px = d.py = null; }
       collecter();
       cb.pas.forEach(fn => fn(dt));
       verifier();
@@ -160,10 +159,10 @@ window.ARENE_RESEAU = (function () {
       for (const u in v) {
         const slot = slotDe[u];
         if (slot == null) continue;
-        const m = v[u] || {}, prev = vu[u] || { s: -1, tc: 0, sc: 0, t: now };
+        const m = v[u] || {}, prev = vu[u] || { s: -1, tc: 0, ec: 0, sc: 0, t: now };
         if (m.s === prev.s && !m.q) continue;
         const f = S.sim.f[slot];
-        const d = S.entreesDistantes[slot] || (S.entreesDistantes[slot] = { mx: 0, my: 0 });
+        const d = S.entreesDistantes[slot] || (S.entreesDistantes[slot] = { mx: 0, my: 0, appuis: [] });
         if (m.q) { d.quitte = true; }
         if (f && f.vivant && isFinite(m.px) && isFinite(m.py)) {
           /* contrôle de vraisemblance : vitesse maximale du personnage depuis le dernier message */
@@ -172,9 +171,12 @@ window.ARENE_RESEAU = (function () {
           const k = L > max ? max / L : 1;
           d.px = f.x + (m.px - f.x) * k; d.py = f.y + (m.py - f.y) * k; d.dt = el;
         }
-        if ((m.tc || 0) > prev.tc) d.tir = { a: +m.ta || 0, d: +m.td || 0 };
-        if ((m.sc || 0) > prev.sc) d.sup = { a: +m.sa || 0, d: +m.sd || 0 };
-        vu[u] = { s: m.s, tc: m.tc || 0, sc: m.sc || 0, t: now };
+        /* chaque nouvelle pression (compteur) devient un appui ; l'anti-spam du moteur refuse l'excédent */
+        const ajouter = (act, n, a, dd) => { for (let i = 0; i < Math.min(3, n); i++) d.appuis.push({ act, a, d: dd }); };
+        ajouter('A', (m.tc || 0) - prev.tc, +m.ta || 0, +m.td || 0);
+        ajouter('E', (m.ec || 0) - prev.ec, +m.ea || 0, 0);
+        ajouter('S', (m.sc || 0) - prev.sc, +m.sa || 0, +m.sd || 0);
+        vu[u] = { s: m.s, tc: m.tc || 0, ec: m.ec || 0, sc: m.sc || 0, t: now };
       }
     });
 
@@ -212,12 +214,15 @@ window.ARENE_RESEAU = (function () {
       f: participants.map((p, i) => {
         const d = M.PERSO[p.perso], sp = carte.depart[i];
         return { slot: i, nom: p.nom, perso: p.perso, humain: p.humain, cadre: p.cadre || 'base', x: sp.x, y: sp.y, ang: Math.atan2(-sp.y, -sp.x), r: R.RAYON_COMBATTANT,
-          hp: d.pv, hpMax: d.pv, runes: 0, mun: R.MUNITIONS, sup: 0, vivant: true, place: 0, kills: 0, force: 0, brume: false, revele: 0,
-          etourdi: 0, bouclier: 0, invisible: 0, lent: 0, sautK: 0, ruee: false, _a: null, _b: null };
+          hp: d.pv, hpMax: d.pv, runes: 0, charges: R.CHARGES.MAX, ki: R.KI.DEPART, vivant: true, place: 0, kills: 0, force: 0, brume: false, revele: 0,
+          etourdi: 0, bouclier: 0, invisible: 0, lent: 0, sautK: 0, etat: 'libre', comboE: 0, specA: 0, esqCd: 0, invul: 0, _a: null, _b: null };
       }),
       p: [], z: [], runes: [], steles: carte.steles.map((s, i) => ({ id: i, x: s.x, y: s.y, hp: R.STELES.PV, hpMax: R.STELES.PV }))
     };
-    let E = { mx: 0, my: 0 }, tc = 0, sc = 0, ta = 0, td = 0, sa = 0, sd = 0, seq = 0, envoi = 0;
+    let E = { mx: 0, my: 0 }, tc = 0, ec = 0, sc = 0, ta = 0, td = 0, ea = 0, sa = 0, sd = 0, seq = 0, envoi = 0;
+    /* prédiction locale de l'esquive et retour immédiat des refus évidents */
+    let dash = null, dernierA = -9, refusLocalT = -9;
+    const ES = R.ESQUIVE, CH = R.CHARGES;
     let dernierEtat = performance.now(), dernierSnapT = -1, recu = 0, lentF = 1, bonusVit = 0;
     const evQ = [], cb = { elimine: [], fin: [] };
     let annonceElim = false, annonceFin = false, actif = false, offEtat = null, offFin = null, minuteur = 0;
@@ -234,14 +239,17 @@ window.ARENE_RESEAU = (function () {
         const f = vue.f[i]; if (!f) return;
         const x = a[0] / 100, y = a[1] / 100, fl = a[8];
         const force = a[10];
-        f.hp = a[3]; f.hpMax = a[4]; f.runes = a[5]; f.mun = a[6] / 100; f.sup = a[7] / 100;
+        f.hp = a[3]; f.hpMax = a[4]; f.runes = a[5]; f.charges = a[6] / 100; f.ki = a[7];
         f.vivant = !!(fl & 1); f.etourdi = fl & 2 ? 1 : 0; f.bouclier = fl & 4 ? 1 : 0; f.invisible = fl & 8 ? 1 : 0; f.lent = fl & 16 ? 1 : 0;
-        f.brume = !!(fl & 32); f.revele = fl & 64 ? 1 : 0; f.ruee = !!(fl & 128); f.sautK = fl & 256 ? a[12] / 100 : 0;
+        f.brume = !!(fl & 32); f.revele = fl & 64 ? 1 : 0; f.invul = fl & 128 ? 1 : 0; f.sautK = a[12] / 100;
         f.place = a[9]; f.kills = a[11];
+        f.etat = M.ETATS[a[15]] || 'libre'; f.comboE = a[16] || 0; f.specA = (a[17] || 0) / 100; f.esqCd = (a[18] || 0) / 100;
+        if (i === moi && dash) f.etat = 'esquive';
         if (i === moi) {
           lentF = (a[13] != null ? a[13] : 100) / 100; bonusVit = (a[14] || 0) / 100;
           const ecart = hyp(f.x - x, f.y - y);
-          if (force !== f.force || f.ruee || f.sautK || f.etourdi || ecart > 3 || !f.vivant || recu < 2) { f.x = x; f.y = y; }
+          const forcee = f.etat === 'projection' || f.sautK || f.etat === 'etourdi';
+          if (!dash && (force !== f.force || forcee || ecart > 3 || !f.vivant || recu < 2)) { f.x = x; f.y = y; }
           else if (ecart > 1.2) { f.x += (x - f.x) * 0.3; f.y += (y - f.y) * 0.3; }
           f.force = force;
         } else {
@@ -255,7 +263,8 @@ window.ARENE_RESEAU = (function () {
       vue.z = (s.zs || []).map(z => ({ id: z[0], x: z[1] / 100, y: z[2] / 100, r: z[3] / 100, t: z[4] / 100, T: z[5] / 100, o: z[6] }));
       vue.runes = (s.ru || []).map(r => ({ id: r[0], x: r[1] / 100, y: r[2] / 100 }));
       (s.st || []).forEach((hp, i) => { if (vue.steles[i]) vue.steles[i].hp = hp; });
-      (s.ev || []).forEach(e => evQ.push(e));
+      const tRecu = now / 1000;
+      (s.ev || []).forEach(e => { e._t = tRecu; evQ.push(e); });
       if (evQ.length > 300) evQ.splice(0, evQ.length - 300);
       const me = vue.f[moi];
       if (me && !me.vivant && !annonceElim) { annonceElim = true; cb.elimine.forEach(fn => fn(me.place)); }
@@ -273,7 +282,7 @@ window.ARENE_RESEAU = (function () {
     function envoyer(force) {
       const me = vue.f[moi];
       seq++;
-      const m = { s: seq, tc, ta: +ta.toFixed(3), td: +td.toFixed(2), sc, sa: +sa.toFixed(3), sd: +sd.toFixed(2) };
+      const m = { s: seq, tc, ta: +ta.toFixed(3), td: +td.toFixed(2), ec, ea: +ea.toFixed(3), sc, sa: +sa.toFixed(3), sd: +sd.toFixed(2) };
       if (me && me.vivant) { m.px = +me.x.toFixed(2); m.py = +me.y.toFixed(2); }
       if (force === 'q') m.q = 1;
       return A.set(base + '/in/' + uid, m).catch(() => {});
@@ -282,11 +291,34 @@ window.ARENE_RESEAU = (function () {
     const S = {
       moi, participants, vue, enLigne: true, role: 'invite',
       commandes(e) { E = e; },
-      tirer(r) { tc++; ta = r.a; td = r.d || 0; envoyer(); },
-      superr(r) { if (vue.f[moi] && vue.f[moi].sup >= 1) { sc++; sa = r.a; sd = r.d || 0; envoyer(); } },
+      tirer(r) {
+        const me = vue.f[moi], t = performance.now() / 1000;
+        /* retour immédiat (l'hôte refusera aussi) : pression trop rapide ou plus de charge */
+        if (me && (t - dernierA < CH.INTERVALLE_MIN_S || me.charges < 1)) { evQ.push({ k: 'refus', s: moi, r: me.charges < 1 ? 'vide' : 'spam', local: 1 }); refusLocalT = t; }
+        else { dernierA = t; if (me) me.charges = Math.max(0, me.charges - 1); }
+        tc++; ta = r.a; td = r.d || 0; envoyer();
+      },
+      esquiver(r) {
+        const me = vue.f[moi];
+        if (!me || !me.vivant) return;
+        const a = r && isFinite(r.a) ? r.a : me.ang || 0;
+        if (me.esqCd > 0) { evQ.push({ k: 'refus', s: moi, r: 'esquive', local: 1 }); refusLocalT = performance.now() / 1000; }
+        else if (!dash && (me.etat === 'libre' || me.etat === 'attaque')) { dash = { dx: Math.cos(a), dy: Math.sin(a), t: 0 }; me.esqCd = ES.RECHARGE_S; }
+        ec++; ea = a; envoyer();
+      },
+      superr(r) {
+        const me = vue.f[moi];
+        if (me && me.ki < M.PERSO[me.perso].special.cout * (1 - R.COMBO.REDUCTION_KI_APRES_COMBO)) { evQ.push({ k: 'refus', s: moi, r: 'ki', local: 1 }); refusLocalT = performance.now() / 1000; }
+        sc++; sa = r.a; sd = r.d || 0; envoyer();
+      },
+      coutSpecial() { const me = vue.f[moi]; if (!me) return 0; const c = M.PERSO[me.perso].special.cout; return Math.round(c * (me.comboE >= 2 ? 1 - R.COMBO.REDUCTION_KI_APRES_COMBO : 1)); },
       onElimine(f) { cb.elimine.push(f); },
       onFin(f) { cb.fin.push(f); },
-      evenements() { return evQ.splice(0); },
+      evenements() {
+        /* un refus déjà signalé localement n'est pas répété quand l'hôte le confirme */
+        const t = performance.now() / 1000;
+        return evQ.splice(0).filter(e => !(e.k === 'refus' && e.s === moi && !e.local && Math.abs((e._t || t) - refusLocalT) < 0.6));
+      },
       demarrer() {
         if (actif) return;
         actif = true; dernierEtat = performance.now();
@@ -302,18 +334,26 @@ window.ARENE_RESEAU = (function () {
         if (!actif) return;
         const now = performance.now();
         const me = vue.f[moi];
-        /* prédiction locale de son propre déplacement */
-        if (me && me.vivant && !me.etourdi && !me.ruee && !me.sautK) {
+        /* prédiction locale : esquive, puis déplacement (même vitesse selon l'état que sur l'hôte) */
+        if (me && dash) {
+          dash.t += dt;
+          const pas = ES.DISTANCE / ES.DUREE_S * Math.min(dt, Math.max(0, ES.DUREE_S - (dash.t - dt)));
+          const p = M.deplacerSurCarte(carte, me.x, me.y, dash.dx * pas, dash.dy * pas, me.r);
+          me.x = p.x; me.y = p.y; me.ang = Math.atan2(dash.dy, dash.dx); me.etat = 'esquive';
+          if (dash.t >= ES.DUREE_S) dash = null;
+        } else if (me && me.vivant && !me.sautK) {
+          const MV = R.MOUVEMENT, k = me.etat === 'libre' ? 1 : me.etat === 'attaque' ? MV.ATTAQUE : me.etat === 'preparation' ? MV.PREPARATION : 0;
           let mx = E.mx || 0, my = E.my || 0;
           const L = hyp(mx, my);
           if (L > 1) { mx /= L; my /= L; }
-          if (L > 0.05) {
-            const v = M.PERSO[me.perso].vitesse * (me.lent ? lentF : 1) * (me.invisible ? 1 + bonusVit : 1);
+          if (L > 0.05 && k > 0) {
+            const v = M.PERSO[me.perso].vitesse * k * (me.lent ? lentF : 1) * (me.invisible ? 1 + bonusVit : 1);
             const p = M.deplacerSurCarte(carte, me.x, me.y, mx * v * dt, my * v * dt, me.r);
-            me.ang = Math.atan2(p.y - me.y, p.x - me.x); me.x = p.x; me.y = p.y;
+            if (me.etat === 'libre') me.ang = Math.atan2(p.y - me.y, p.x - me.x);
+            me.x = p.x; me.y = p.y;
           }
-          me.brume = M.dansBrume(carte, me.x, me.y);
         }
+        if (me) { me.brume = M.dansBrume(carte, me.x, me.y); me.esqCd = Math.max(0, me.esqCd - dt); }
         /* les autres combattants : interpolation entre les deux derniers états */
         const tr = now - DELAI;
         for (const f of vue.f) {
@@ -323,10 +363,22 @@ window.ARENE_RESEAU = (function () {
         }
         /* projectiles : extrapolation depuis le dernier état */
         const el = (now - projT) / 1000;
-        vue.p = projRecu.map(p => p[1] === 1
-          ? { k: 'lob', id: p[0], x0: p[2] / 100, y0: p[3] / 100, tx: p[4] / 100, ty: p[5] / 100, t: p[6] / 100 + el, T: p[7] / 100, r: p[8] / 100, o: p[9], sup: !!p[10] }
-          : { k: 'tir', id: p[0], x: p[2] / 100 + p[4] / 100 * el, y: p[3] / 100 + p[5] / 100 * el, vx: p[4] / 100, vy: p[5] / 100, r: p[6] / 100, o: p[7], sup: !!p[8] })
-          .filter(p => p.k === 'lob' ? p.t < p.T : hyp(p.vx * el, p.vy * el) < (projRecu.find(q => q[0] === p.id) || [])[9] / 100 + 0.2);
+        const F = M.FORMES;
+        vue.p = [];
+        for (const p of projRecu) {
+          if (p[1] === 1) {
+            const q = { k: 'lob', id: p[0], x0: p[2] / 100, y0: p[3] / 100, tx: p[4] / 100, ty: p[5] / 100, t: p[6] / 100 + el, T: p[7] / 100, r: p[8] / 100, o: p[9], sup: !!p[10], forme: F[p[11]] };
+            if (q.t < q.T) vue.p.push(q);
+          } else if (p[1] === 2) {
+            /* faisceau : suit son lanceur (position prédite ou interpolée) */
+            const o = vue.f[p[9]], q = { k: 'faisceau', id: p[0], x: p[2] / 100, y: p[3] / 100, a: p[4] / 100, l: p[5] / 100, w: p[6] / 100, t: p[7] / 100 + el, T: p[8] / 100, o: p[9] };
+            if (o) { q.x = o.x + Math.cos(q.a) * 0.4; q.y = o.y + Math.sin(q.a) * 0.4; }
+            if (q.t < q.T + 0.1) vue.p.push(q);
+          } else {
+            const vx = p[4] / 100, vy = p[5] / 100;
+            if (hyp(vx * el, vy * el) < p[9] / 100 + 0.2) vue.p.push({ k: 'tir', id: p[0], x: p[2] / 100 + vx * el, y: p[3] / 100 + vy * el, vx, vy, r: p[6] / 100, o: p[7], sup: !!p[8], forme: F[p[10]], fin: !!p[11] });
+          }
+        }
         for (const z of vue.z) z.t = Math.max(0, z.t - dt);
         envoi += dt;
         if (envoi >= 1 / MM.ENVOI_ENTREES_HZ) { envoi = 0; if (me && me.vivant) envoyer(); }
@@ -470,7 +522,7 @@ window.ARENE_RESEAU = (function () {
       setTimeout(() => { if (!annule && !fini) enLigne().catch(() => local()); }, 300);
     }
 
-    if (!o.forcerLocal && enLigneDisponible()) enLigne().catch(e => { console.warn('[Arène] matchmaking', e); if (!annule && !fini) { nettoyer(); local(); } });
+    if (!o.forcerLocal && enLigneDisponible()) enLigne().catch(e => { console.warn('[Runes des Trophées] matchmaking', e); if (!annule && !fini) { nettoyer(); local(); } });
     else local();
 
     return { annuler() { annule = true; nettoyer(); } };
