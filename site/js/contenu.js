@@ -40,6 +40,13 @@ const CONTENU = {
   /* ---------- Mises à jour (la plus récente en premier) ----------
      Pour en ajouter une : copie un bloc { ... }, colle-le tout en haut de la liste et change le texte. */
   majs: [
+    { v: '23.4', date: '25 novembre 2026', titre: 'Codes cadeaux et héroïnes voilées', points: [
+      'Codes cadeaux : Réglages > Compte > Code cadeau (6 chiffres, une seule utilisation par code).',
+      'Les vignettes de la page Héros montrent enfin le même héros que sa fiche 3D.',
+      'Les héroïnes portent un casque et un voile qui cachent les cheveux, et des tenues plus amples.',
+      'Plus de magie : chapeaux de magicien, auréole, talismans et amulettes retirés, noms de techniques revus.',
+      "Plus de percussions, et plus de hasard dans les récompenses : objets aux valeurs fixes, une faille toutes les 2 heures avec un gain fixe."
+    ] },
     { v: '23.3', date: '24 novembre 2026', titre: 'Recrutement sans hasard', points: [
       "L'invocation au hasard disparaît : au Recrutement, tu choisis le héros (ou l'emplacement d'objet) et tu sais exactement ce que tu reçois.",
       'El Diablo devient Fâris, le Chevalier d\'acier : armure d\'acier bleuté, plus de cornes, techniques renommées.',

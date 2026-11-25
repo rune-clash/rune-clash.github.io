@@ -98,15 +98,15 @@ window.ARENE_CONFIG = (function () {
     PERSONNAGES: [
       {
         id: 'rin', classe: 'Assassin', deblocage: 0, forme: 'flamme',
-        resume: 'Rapide et insaisissable : enchaîne les feux follets et finit au corps à corps.',
+        resume: 'Rapide et insaisissable : enchaîne les flammèches et finit au corps à corps.',
         pv: 4100, vitesse: 4.9, rechargement: 1.1,
-        attaque: { nom: 'Feu follet', type: 'tir', degats: 540, portee: 5.6, projectiles: 1, vitesseProj: 18, rayon: 0.32, prep: 0.07, recup: 0.16 },
+        attaque: { nom: 'Flammèche', type: 'tir', degats: 540, portee: 5.6, projectiles: 1, vitesseProj: 18, rayon: 0.32, prep: 0.07, recup: 0.16 },
         combo: [
           { nom: 'Queue de feu', type: 'tir', degats: 380, portee: 5.0, projectiles: 3, dispersion: 22, vitesseProj: 17, rayon: 0.3, prep: 0.08, recup: 0.18 },
           { nom: 'Brasier rusé', type: 'cone', degats: 950, portee: 2.8, angle: 100, avance: 1.2, recul: 2.2, etourdit: 0.35, prep: 0.12, recup: 0.3 }
         ],
         elan: { nom: 'Griffe du renard', type: 'cone', degats: 720, portee: 2.4, angle: 70, avance: 1.8, prep: 0.05, recup: 0.22 },
-        special: { nom: 'Vague de feux follets', type: 'tir', cout: 45, degats: 520, portee: 6.5, projectiles: 7, dispersion: 50, vitesseProj: 16, rayon: 0.42, perce: true, prep: 0.18 }
+        special: { nom: 'Vague de flammèches', type: 'tir', cout: 45, degats: 520, portee: 6.5, projectiles: 7, dispersion: 50, vitesseProj: 16, rayon: 0.42, perce: true, prep: 0.18 }
       },
       {
         id: 'bram', classe: 'Tank', deblocage: 0, forme: 'magma',
@@ -130,7 +130,7 @@ window.ARENE_CONFIG = (function () {
           { nom: 'Lance de lumière', type: 'tir', degats: 1250, portee: 11, projectiles: 1, vitesseProj: 32, rayon: 0.35, perce: true, recul: 1.5, prep: 0.2, recup: 0.3 }
         ],
         elan: { nom: 'Pas de lumière', type: 'tir', degats: 450, portee: 6, projectiles: 3, dispersion: 30, vitesseProj: 24, rayon: 0.26, prep: 0.05, recup: 0.2 },
-        special: { nom: "Jugement d'aurore", type: 'faisceau', cout: 55, degats: 2200, portee: 12, largeur: 0.45, duree: 1.0, prep: 0.3 }
+        special: { nom: "Colère d'aurore", type: 'faisceau', cout: 55, degats: 2200, portee: 12, largeur: 0.45, duree: 1.0, prep: 0.3 }
       },
       {
         id: 'mizuha', classe: 'Contrôle', deblocage: 50, forme: 'vague',
@@ -172,13 +172,13 @@ window.ARENE_CONFIG = (function () {
         id: 'shiki', classe: 'Marionnettiste', deblocage: 200, forme: 'fil',
         resume: "Ses fils ralentissent, son nœud étourdit, et son ballet attire tout le monde vers elle.",
         pv: 3900, vitesse: 4.3, rechargement: 1.35,
-        attaque: { nom: 'Fil du destin', type: 'tir', degats: 560, portee: 7.0, projectiles: 1, vitesseProj: 16, rayon: 0.28, ralenti: { duree: 1, facteur: 0.65 }, prep: 0.08, recup: 0.2 },
+        attaque: { nom: 'Fil de soie', type: 'tir', degats: 560, portee: 7.0, projectiles: 1, vitesseProj: 16, rayon: 0.28, ralenti: { duree: 1, facteur: 0.65 }, prep: 0.08, recup: 0.2 },
         combo: [
           { nom: 'Fils croisés', type: 'tir', degats: 480, portee: 7.0, projectiles: 2, dispersion: 14, vitesseProj: 16, rayon: 0.28, ralenti: { duree: 1, facteur: 0.65 }, prep: 0.08, recup: 0.22 },
-          { nom: 'Nœud du destin', type: 'tir', degats: 800, portee: 7.5, projectiles: 1, vitesseProj: 18, rayon: 0.4, perce: true, etourdit: 0.4, prep: 0.15, recup: 0.3 }
+          { nom: 'Nœud de soie', type: 'tir', degats: 800, portee: 7.5, projectiles: 1, vitesseProj: 18, rayon: 0.4, perce: true, etourdit: 0.4, prep: 0.15, recup: 0.3 }
         ],
         elan: { nom: 'Pas de marionnette', type: 'tir', degats: 360, portee: 6, projectiles: 3, dispersion: 30, vitesseProj: 17, rayon: 0.26, prep: 0.05, recup: 0.2 },
-        special: { nom: 'Ballet macabre', type: 'attraction', cout: 45, portee: 7.5, rayon: 3.4, degats: 1050, force: 4.5, etourdit: 0.6, prep: 0.2 }
+        special: { nom: 'Ballet des fils', type: 'attraction', cout: 45, portee: 7.5, rayon: 3.4, degats: 1050, force: 4.5, etourdit: 0.6, prep: 0.2 }
       },
       {
         id: 'raimei', classe: 'Artilleur', deblocage: 300, forme: 'eclair',
@@ -202,7 +202,7 @@ window.ARENE_CONFIG = (function () {
           { nom: 'Éboulement', type: 'tir', degats: 1000, portee: 6, projectiles: 1, vitesseProj: 10, rayon: 0.9, perce: true, recul: 2.5, etourdit: 0.3, forme: 'onde', prep: 0.22, recup: 0.38 }
         ],
         elan: { nom: 'Bélier', type: 'cone', degats: 900, portee: 2.4, angle: 70, avance: 2, recul: 3, prep: 0.06, recup: 0.28 },
-        special: { nom: 'Montagne sacrée', type: 'saut', cout: 60, portee: 7.0, rayon: 2.4, degats: 1200, etourdit: 0.6, duree: 0.65, prep: 0.3 }
+        special: { nom: 'Montagne immuable', type: 'saut', cout: 60, portee: 7.0, rayon: 2.4, degats: 1200, etourdit: 0.6, duree: 0.65, prep: 0.3 }
       },
       {
         id: 'eldiablo', classe: 'Chevalier', deblocage: 500, forme: 'neant',
