@@ -28,6 +28,10 @@ window.ARENE_MOTEUR = (function () {
   const PERSO = {};
   CFG.PERSONNAGES.forEach(p => { PERSO[p.id] = p; });
   const RAYON_STELE = 0.8;
+  /* réglages lus dans la configuration (avec la valeur historique si la clé manque) */
+  const val = (o, k, d) => (o && typeof o[k] === 'number' ? o[k] : d);
+  const GEN = R.DECOR.GENERATION || {}, REV = R.REVELATION || {}, IA = CFG.BOTS.IA || {};
+  const AMPL_RAYON = val(R.KI, 'AMPLIFIE_RAYON', 1.15), AMPL_DUREE = val(R.KI, 'AMPLIFIE_DUREE', 1.3);
 
   /* Hasard reproductible (même graine = même carte chez tous les joueurs). */
   function alea(graine) {
@@ -67,13 +71,13 @@ window.ARENE_MOTEUR = (function () {
     };
 
     let essais = 0;
-    while (murs.length < 7 * 4 && essais++ < 500) {
+    while (murs.length < val(GEN, 'MURS_PAR_QUART', 7) * 4 && essais++ < 500) {
       const hor = rnd() < 0.5, L = 2.6 + rnd() * 4.2, E = 1.1;
-      const type = rnd() < 0.35 ? 'rempart' : 'muret';
+      const type = rnd() < val(GEN, 'PART_REMPARTS', 0.35) ? 'rempart' : 'muret';
       const w = hor ? L : E, h = hor ? E : L;
       const cx = 2.2 + rnd() * (H - 4.5), cy = 2.2 + rnd() * (H - 4.5);
       /* ruine en L : un retour perpendiculaire à une extrémité (30 %) */
-      const L2 = rnd() < 0.3 ? 1.8 + rnd() * 1.6 : 0, cote = rnd() < 0.5 ? -1 : 1, bout = rnd() < 0.5 ? -1 : 1;
+      const L2 = rnd() < val(GEN, 'PART_RUINES_EN_L', 0.3) ? 1.8 + rnd() * 1.6 : 0, cote = rnd() < 0.5 ? -1 : 1, bout = rnd() < 0.5 ? -1 : 1;
       const formes = [{ x: cx, y: cy, w, h }];
       if (L2) formes.push(hor ? { x: cx + bout * (L / 2 - E / 2), y: cy + cote * (L2 / 2 + E / 2), w: E, h: L2 } : { x: cx + cote * (L2 / 2 + E / 2), y: cy + bout * (L / 2 - E / 2), w: L2, h: E });
       const copies = [];
@@ -86,7 +90,7 @@ window.ARENE_MOTEUR = (function () {
       if (ok) copies.forEach(c => murs.push(mur(c.x, c.y, c.w, c.h, type)));
     }
     essais = 0;
-    while (piliers.length < 3 * 4 && essais++ < 300) {
+    while (piliers.length < val(GEN, 'PILIERS_PAR_QUART', 3) * 4 && essais++ < 300) {
       const r = 0.75 + rnd() * 0.55, cx = 2 + rnd() * (H - 4), cy = 2 + rnd() * (H - 4);
       const copies = rot4(cx, cy);
       if (copies.every(([x, y]) => loinDesDeparts(x, y, r + 2.4) && libre(x, y, r + 1.4) && hyp(x, y) > 2.5))
@@ -210,7 +214,7 @@ window.ARENE_MOTEUR = (function () {
     if (!c.vivant) return false;
     if (obs && obs.slot === c.slot) return true;
     const d = obs ? hyp(obs.x - c.x, obs.y - c.y) : 99;
-    if (c.invisible > 0) return d < 1.6;
+    if (c.invisible > 0) return d < val(REV, 'VUE_INVISIBLE', 1.6);
     if (c.cache && c.revele <= 0) return d < R.CACHETTES.VISIBILITE;
     return true;
   }
@@ -315,8 +319,8 @@ window.ARENE_MOTEUR = (function () {
       const Z = R.ZONE, t = S.t;
       let r = zoneR0;
       if (t > Z.DEBUT_S) r = zoneR0 + (Z.RAYON_FINAL - zoneR0) * clamp((t - Z.DEBUT_S) / (Z.FIN_S - Z.DEBUT_S), 0, 1);
-      const fin2 = R.DUREE_MAX_S - 25;
-      if (t > fin2) r = Z.RAYON_FINAL * clamp(1 - (t - fin2) / 20, 0, 1);
+      const fin2 = R.DUREE_MAX_S - val(Z, 'FERMETURE_AVANT_FIN_S', 25);
+      if (t > fin2) r = Z.RAYON_FINAL * clamp(1 - (t - fin2) / val(Z, 'FERMETURE_FINALE_S', 20), 0, 1);
       S.zone.r = r;
       S.zone.pct = Z.DEGATS_PCT_S + (Z.DEGATS_PCT_S_MAX - Z.DEGATS_PCT_S) * clamp((t - Z.DEBUT_S) / (Z.FIN_S - Z.DEBUT_S), 0, 1);
     }
@@ -341,8 +345,8 @@ window.ARENE_MOTEUR = (function () {
       if (c.invul > 0 && !(opt && opt.zone)) { ev({ k: 'evite', s: c.slot, x: +c.x.toFixed(2), y: +c.y.toFixed(2) }); S.stats.evites++; return 0; }
       if (c.bouclier > 0) montant *= 1 - c.bouclierRed;
       montant = Math.round(montant);
-      c.hp -= montant; c.dDeg = S.t; c.revele = Math.max(c.revele, 0.6);
-      if (c.invisible > 0 && montant > 0) c.invisible = Math.min(c.invisible, 0.4);
+      c.hp -= montant; c.dDeg = S.t; c.revele = Math.max(c.revele, val(REV, 'REVELE_APRES_DEGAT_S', 0.6));
+      if (c.invisible > 0 && montant > 0) c.invisible = Math.min(c.invisible, val(REV, 'INVISIBLE_APRES_DEGAT_S', 0.4));
       gagnerKi(c, montant * KI.PAR_DEGAT_RECU);
       if (src && src !== c) {
         src.degats += montant;
@@ -412,7 +416,7 @@ window.ARENE_MOTEUR = (function () {
           const ca = Math.cos(a), sa = Math.sin(a), v = A.vitesseProj || 16;
           S.p.push({
             id: S.nid++, k: 'tir', o: f.slot, x: f.x + ca * 0.45, y: f.y + sa * 0.45, vx: ca * v, vy: sa * v,
-            reste: portee, dmg: A.degats * mult, r: (A.rayon || 0.3) * (info.ampl ? 1.15 : 1), perce: !!A.perce, touches: [],
+            reste: portee, dmg: A.degats * mult, r: (A.rayon || 0.3) * (info.ampl ? AMPL_RAYON : 1), perce: !!A.perce, touches: [],
             ralenti: A.ralenti || null, recul: A.recul || 0, etourdit: A.etourdit || 0, sup: !!info.sup, fin: info.fin || null, forme
           });
         };
@@ -502,21 +506,21 @@ window.ARENE_MOTEUR = (function () {
         ev({ k: 'onde', x: +f.x.toFixed(2), y: +f.y.toFixed(2), r: Su.rayon * pk, o: f.slot });
         return changerEtat(f, 'libre');
       }
-      if (Su.type === 'invisibilite') { f.invisible = Su.duree * (ampl ? 1.3 : 1); f.bonusVit = Su.bonusVitesse; f.bonusProchain = Su.bonusProchaineAttaque * (ampl ? 1.3 : 1); return changerEtat(f, 'libre'); }
+      if (Su.type === 'invisibilite') { f.invisible = Su.duree * (ampl ? AMPL_DUREE : 1); f.bonusVit = Su.bonusVitesse; f.bonusProchain = Su.bonusProchaineAttaque * (ampl ? 1.3 : 1); return changerEtat(f, 'libre'); }
       if (Su.type === 'zone') {
         const c = cibleSol(f, ang, dist, Su.portee * pk);
-        S.z.push({ id: S.nid++, k: 'zone', x: c.x, y: c.y, r: Su.rayon * (ampl ? 1.15 : 1), t: Su.delai, T: Su.delai, dmg: Su.degats * mult, etourdit: Su.etourdit, o: f.slot });
+        S.z.push({ id: S.nid++, k: 'zone', x: c.x, y: c.y, r: Su.rayon * (ampl ? AMPL_RAYON : 1), t: Su.delai, T: Su.delai, dmg: Su.degats * mult, etourdit: Su.etourdit, o: f.slot });
         return changerEtat(f, 'libre');
       }
       if (Su.type === 'saut') {
         const c = cibleSol(f, ang, dist, Su.portee * pk);
         for (let k = 0; k < 10 && dansObstacle(carte, c.x, c.y, f.r); k++) { c.x += (f.x - c.x) * 0.2; c.y += (f.y - c.y) * 0.2; }
         changerEtat(f, 'projection');
-        f.proj = { type: 'saut', x0: f.x, y0: f.y, x1: c.x, y1: c.y, t: 0, T: Su.duree, r: Su.rayon * (ampl ? 1.15 : 1), dmg: Su.degats * mult, etourdit: Su.etourdit };
+        f.proj = { type: 'saut', x0: f.x, y0: f.y, x1: c.x, y1: c.y, t: 0, T: Su.duree, r: Su.rayon * (ampl ? AMPL_RAYON : 1), dmg: Su.degats * mult, etourdit: Su.etourdit };
         return;
       }
       if (Su.type === 'attraction') {
-        const c = cibleSol(f, ang, dist, Su.portee * pk), rr = Su.rayon * (ampl ? 1.15 : 1);
+        const c = cibleSol(f, ang, dist, Su.portee * pk), rr = Su.rayon * (ampl ? AMPL_RAYON : 1);
         for (const e of S.f) {
           if (e === f || !e.vivant) continue;
           const dx = c.x - e.x, dy = c.y - e.y, d = hyp(dx, dy);
@@ -884,7 +888,7 @@ window.ARENE_MOTEUR = (function () {
       S.runes = S.runes.filter(ru => {
         for (const f of S.f) {
           if (!f.vivant || (f.proj && f.proj.type === 'saut')) continue;
-          if (hyp(f.x - ru.x, f.y - ru.y) < f.r + 0.45 && f.runes < R.RUNES.MAX) {
+          if (hyp(f.x - ru.x, f.y - ru.y) < f.r + val(R.RUNES, 'RAYON_RAMASSAGE', 0.45) && f.runes < R.RUNES.MAX) {
             f.runes++;
             const nouv = Math.round(f.hpBase * (1 + f.runes * R.RUNES.BONUS_PV));
             f.hp += nouv - f.hpMax; f.hpMax = nouv;
@@ -952,9 +956,9 @@ window.ARENE_MOTEUR = (function () {
       if (A.type === 'tir') t = d / (A.vitesseProj || 16);
       else if (A.type === 'lob' || A.type === 'zone') t = A.delai || 0.6;
       t += (A.prep || 0.1);
-      const k = 0.3 + N.precision * 0.7;
+      const vb = val(IA, 'VISEE_BASE', 0.3), k = vb + N.precision * (1 - vb);
       const px = c.x + (c.vx || 0) * t * k, py = c.y + (c.vy || 0) * t * k;
-      const err = (1 - N.precision) * 0.55 * (rnd() * 2 - 1);
+      const err = (1 - N.precision) * val(IA, 'ERREUR_VISEE', 0.55) * (rnd() * 2 - 1);
       return { a: Math.atan2(py - f.y, px - f.x) + err, d: hyp(px - f.x, py - f.y) };
     }
 
@@ -1015,9 +1019,9 @@ window.ARENE_MOTEUR = (function () {
           const def2 = etapeDef(d, Math.min(3, f.att.etape + 1), false);
           if (hyp(c.x - f.x, c.y - f.y) <= def2.portee * (def2.type === 'cone' ? 1.05 : 0.95)) {
             presser('A', viser(f, c, def2));
-            B.combo--; B.delaiCombo = (1 - N.combo) * 0.25 * rnd();
+            B.combo--; B.delaiCombo = (1 - N.combo) * val(IA, 'DELAI_COMBO_S', 0.25) * rnd();
             /* après deux étapes, un bot doué finit par une projection moins chère */
-            if (B.combo === 0 && f.att.etape >= 2 && rnd() < N.specialSage * 0.5 && f.ki >= Su.cout * (1 - R.COMBO.REDUCTION_KI_APRES_COMBO)) B.finSpecial = true;
+            if (B.combo === 0 && f.att.etape >= 2 && rnd() < N.specialSage * val(IA, 'SPECIAL_APRES_COMBO', 0.5) && f.ki >= Su.cout * (1 - R.COMBO.REDUCTION_KI_APRES_COMBO)) B.finSpecial = true;
           } else B.combo = 0;
         }
       }
@@ -1082,7 +1086,7 @@ window.ARENE_MOTEUR = (function () {
         if (f.etat === 'libre' && !f.tampon && dd <= portee * 0.96 && f.charges >= 1 && ldv && rnd() < 0.45 + N.agressivite * 0.55) {
           presser('A', viser(f, cible, A));
           B.combo = f.charges >= 2.99 && rnd() < N.combo ? 2 : 0;
-          B.delaiCombo = (1 - N.combo) * 0.25 * rnd();
+          B.delaiCombo = (1 - N.combo) * val(IA, 'DELAI_COMBO_S', 0.25) * rnd();
         }
         /* Ki : projection quand la situation s'y prête */
         if (f.etat === 'libre' && !out.appuis.length && f.ki >= Su.cout && rnd() < N.specialSage * 0.6) {

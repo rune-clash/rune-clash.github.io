@@ -271,7 +271,9 @@ window.ARENE_CONFIG = (function () {
         PAR_RUNE: 6,
         AMPLIFIE_SEUIL: 100,            // projection lancée avec le Ki plein : amplifiée (tout le Ki est consommé)
         AMPLIFIE_PUISSANCE: 1.35,
-        AMPLIFIE_PORTEE: 1.2
+        AMPLIFIE_PORTEE: 1.2,
+        AMPLIFIE_RAYON: 1.15,           // zones, sauts et projectiles amplifiés : rayon ×1,15
+        AMPLIFIE_DUREE: 1.3             // invisibilité amplifiée : durée ×1,3
       },
       /* Vitesse de déplacement selon l'état du combattant (1 = vitesse normale). */
       MOUVEMENT: { ATTAQUE: 0.55, PREPARATION: 0.3, FAISCEAU: 0, RECUPERATION_ETOURDI: 0.6 },
@@ -279,13 +281,18 @@ window.ARENE_CONFIG = (function () {
       DELAI_TICK_FAISCEAU_S: 0.1,
       DUREE_MAX_S: 220,                 // sécurité : au-delà, classement aux points de vie
       REGEN: { DELAI_S: 3, PCT_PAR_S: 0.12 },
-      ZONE: { DEBUT_S: 20, FIN_S: 160, RAYON_FINAL: 3, DEGATS_PCT_S: 0.07, DEGATS_PCT_S_MAX: 0.22 },
+      /* Zone : rétrécit de DEBUT_S à FIN_S jusqu'à RAYON_FINAL, puis se referme complètement pendant
+         FERMETURE_FINALE_S, en commençant FERMETURE_AVANT_FIN_S avant DUREE_MAX_S. */
+      ZONE: { DEBUT_S: 20, FIN_S: 160, RAYON_FINAL: 3, DEGATS_PCT_S: 0.07, DEGATS_PCT_S_MAX: 0.22, FERMETURE_AVANT_FIN_S: 25, FERMETURE_FINALE_S: 20 },
       STELES: { NOMBRE: 24, PV: 3600 },
-      RUNES: { BONUS_DEGATS: 0.10, BONUS_PV: 0.08, MAX: 16 },
+      RUNES: { BONUS_DEGATS: 0.10, BONUS_PV: 0.08, MAX: 16, RAYON_RAMASSAGE: 0.45 },
       /* Cachettes (fourrés de cristal) : on y est invisible à plus de VISIBILITE m des ennemis,
          sauf pendant REVELE_APRES_TIR_S après avoir attaqué ou été touché.
          Embuscade : la première attaque lancée depuis une cachette, sans être repéré, fait +EMBUSCADE_BONUS de dégâts. */
       CACHETTES: { NOMBRE: 12, VISIBILITE: 3.2, REVELE_APRES_TIR_S: 1, EMBUSCADE_BONUS: 0.2 },
+      /* Être touché révèle : REVELE_APRES_DEGAT_S de visibilité, et l'invisibilité (projection) est ramenée à
+         INVISIBLE_APRES_DEGAT_S au plus. Un combattant invisible reste visible à moins de VUE_INVISIBLE m. */
+      REVELATION: { REVELE_APRES_DEGAT_S: 0.6, INVISIBLE_APRES_DEGAT_S: 0.4, VUE_INVISIBLE: 1.6 },
       /* Décor tactique (murets, remparts, piliers, cachettes).
          RÈGLE STRICTE : destructible UNIQUEMENT dans les modes listés dans DESTRUCTIBLE_SELON_MODE (Runes des Trophées) ;
          dans tous les autres modes, le même décor est permanent (incassable).
@@ -297,7 +304,9 @@ window.ARENE_CONFIG = (function () {
         PILIER:   { PV: 4200, SEUIL: 600 },
         CACHETTE: { PV: 1300, SEUIL: 0, PART_DES_TIRS: 0.35 },  // un tir qui traverse un fourré lui inflige 35 % de ses dégâts
         PART_EXPLOSIONS: 1,                                       // dégâts des explosions et frappes au sol sur le décor
-        THEMES: ['feu', 'eau', 'foudre', 'terre', 'ombre', 'prisme']
+        THEMES: ['feu', 'eau', 'foudre', 'terre', 'ombre', 'prisme'],
+        /* Densité de la carte (par quart, la carte étant symétrique) et part de chaque type d'obstacle */
+        GENERATION: { MURS_PAR_QUART: 7, PILIERS_PAR_QUART: 3, PART_REMPARTS: 0.35, PART_RUINES_EN_L: 0.3 }
       }
     },
 
@@ -313,6 +322,11 @@ window.ARENE_CONFIG = (function () {
         { jusqua: 2000,     precision: 0.82, reaction: 0.28, agressivite: 0.7,  esquive: 0.55, combo: 0.75, specialSage: 0.85 },
         { jusqua: Infinity, precision: 0.9,  reaction: 0.2,  agressivite: 0.8,  esquive: 0.7,  combo: 0.9,  specialSage: 1 }
       ],
+      /* Réglages fins de l'intelligence des bots (communs à tous les niveaux) :
+         VISEE_BASE : part de l'anticipation de la cible même pour un bot imprécis ; ERREUR_VISEE : écart d'angle
+         maximal (radians) d'un bot de précision 0 ; DELAI_COMBO_S : pause maximale entre deux coups d'un combo ;
+         SPECIAL_APRES_COMBO : chance (× specialSage) de finir un combo par une projection. */
+      IA: { VISEE_BASE: 0.3, ERREUR_VISEE: 0.55, DELAI_COMBO_S: 0.25, SPECIAL_APRES_COMBO: 0.5 },
       NOMS: ['Kazeko', 'Lune_Rousse', 'Ombrefeu', 'Sora44', 'Tempêtine', 'Rokku', 'Yugen', 'Brasero', 'Nébule', 'Akari_7',
              'Hoshiko', 'Grêlon', 'Mokuzai', 'Vif-Argent', 'Taiko', 'Saphira', 'Kumo', 'Ébène', 'Raijin_9', 'Fennec']
     }

@@ -40,6 +40,12 @@ const CONTENU = {
   /* ---------- Mises à jour (la plus récente en premier) ----------
      Pour en ajouter une : copie un bloc { ... }, colle-le tout en haut de la liste et change le texte. */
   majs: [
+    { v: '23.5', date: '25 novembre 2026', titre: 'Plus fiable, partout', points: [
+      "L'écran Entraînement s'ouvre de nouveau (il plantait avec l'adversaire par défaut).",
+      "Les héroïnes n'apparaissent jamais sans leur voile : on attend leur modèle avant un combat.",
+      'La faille se pose sur un bord de l\'écran et ne recouvre plus les boutons ; bouton du ticket gratuit plus grand en paysage.',
+      'Testé à 10 combattants : 60 images/s, aucune fuite après plusieurs parties, déconnexions gérées en ligne.'
+    ] },
     { v: '23.4', date: '25 novembre 2026', titre: 'Codes cadeaux et héroïnes voilées', points: [
       'Codes cadeaux : Réglages > Compte > Code cadeau (6 chiffres, une seule utilisation par code).',
       'Les vignettes de la page Héros montrent enfin le même héros que sa fiche 3D.',

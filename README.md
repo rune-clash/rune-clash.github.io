@@ -10,7 +10,8 @@ Duels de héros en 3D : personnages originaux, Runes des Trophées à 10 joueurs
 - `arene/arene.css` : les styles du mode.
 - Combat : 3 charges anti-spam, combos par personnage (A·A·A, Esquive→A, A·A→Spécial), esquive, Ki et projections spéciales. Tous les réglages sont dans `arene/config.js` (CHARGES, COMBO, ESQUIVE, KI, MOUVEMENT, listes de coups).
 - Décor tactique : murets, remparts, piliers et fourrés-cachettes. Règle stricte : destructible uniquement dans Runes des Trophées (`REGLES.DECOR.DESTRUCTIBLE_SELON_MODE`), permanent dans tous les autres modes. PV et seuil de dégâts par élément dans `REGLES.DECOR`.
-- Tests automatiques (Node, sans installation) : `node outils/tests-arene/moteur.test.js`, `node outils/tests-arene/decor.test.js`, `node outils/tests-arene/reseau.test.js`, `node outils/tests-arene/equilibrage.js 160`.
+- Tests automatiques (Node, sans installation) : `node outils/tests-arene/moteur.test.js`, `node outils/tests-arene/decor.test.js`, `node outils/tests-arene/reseau.test.js`, `node --expose-gc outils/tests-arene/stabilite.test.js` (10 combattants : performance, mémoire, 10 vrais joueurs avec déconnexions), `node outils/tests-arene/equilibrage.js 160`.
+- Tests dans le navigateur (Playwright, jeu servi sur `http://localhost:8765`) : `node outils/tests-arene/audit-interface.navigateur.js` (tous les écrans sur 6 tailles) et `node outils/tests-arene/enchaine.navigateur.js 390 844 6` (parties enchaînées : fuites et fluidité).
 - Tester sur un serveur local : `python3 -m http.server`, puis ouvrir `http://localhost:8000/?arene_test=1` (les 10 personnages sont débloqués) ; `?netmock=1` simule le serveur en ligne entre plusieurs onglets.
 
 ## Contenus conformes (v23.3 et v23.4)
@@ -20,6 +21,12 @@ Duels de héros en 3D : personnages originaux, Runes des Trophées à 10 joueurs
 - **Héroïnes voilées** : `python3 outils/heroines_pudiques.py rin seika …` (après `tenues_couvrantes.py`) met un casque sur le haut du crâne, un voile sur le reste de la tête, le cou et les mèches longues, aplatit le buste, élargit la taille et les jambes (tenues amples), retire l'auréole de Seren et rentre les chapeaux pointus (Shiki, Kairo). Réglages par héros en tête du fichier (`REGLAGES`, `CHAPEAU_SEUL`).
 - **Pas de musique** : le moteur de percussions est muet et son réglage a disparu ; seuls restent les effets sonores et l'ambiance (vent).
 - **Aucun hasard dans les récompenses** : les objets ont des valeurs fixes (ordre régulier), une faille s'ouvre toutes les 2 heures avec un gain fixe. Le hasard ne reste que dans le combat lui-même (coups critiques, comportement des bots).
+
+## Réglages d'équilibrage
+- `arene/config.js` : tout le mode Runes des Trophées (combat, Ki, zone, révélation, densité des cartes, bots et leur IA, trophées, Route).
+- `equilibrage.js` : l'économie du jeu (prix et quotas de tickets, ticket gratuit, fragments par ticket au recrutement, objets de la Forge, gains des failles).
+- `cadeaux/codes.js` : les codes cadeaux.
+Chaque fichier vérifie ses valeurs au chargement et signale une erreur de saisie dans la console.
 
 ## Codes cadeaux
 - `cadeaux/codes.js` : **le seul fichier à modifier** pour ajouter ou retirer un code (6 chiffres, récompenses : héros, tickets, pièces, éclats).
